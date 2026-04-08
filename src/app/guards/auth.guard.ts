@@ -30,7 +30,7 @@ export class AuthGuard implements CanActivate {
     // Role check logic
     const requiredRoles = route.data['roles'] as Array<string>;
     if (requiredRoles && !requiredRoles.includes(user.role)) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/401']);
       return false;
     }
     

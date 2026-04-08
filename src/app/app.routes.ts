@@ -12,6 +12,9 @@ import { InvoiceEditorComponent } from './components/invoice-editor/invoice-edit
 import { InvoiceViewerComponent } from './components/invoice-viewer/invoice-viewer.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { TemplateGalleryComponent } from './components/dashboard/template-gallery/template-gallery.component';
+import { Error404Component } from './components/errors/error404/error404.component';
+import { Error401Component } from './components/errors/error401/error401.component';
+
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -70,6 +73,8 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { roles: ['ADMIN', 'USER'] }
   },
+  { path: '401', component: Error401Component },
+  { path: '404', component: Error404Component },
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: '**', component: Error404Component }
 ];

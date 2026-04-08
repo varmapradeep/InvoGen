@@ -173,7 +173,7 @@
         <button (click)="printInvoice()">Print / PDF</button>
         <button class="btn-save" (click)="saveDraft()" [disabled]="isSaving">{{ isSaving ? 'Saving...' : 'Save Draft'
           }}</button>
-        <button class="btn-close" (click)="router.navigate(['/dashboard'])">Exit</button>
+        <button class="btn-close" (click)="exitEditor()">Exit</button>
       </div>
     </header>
 
@@ -234,19 +234,19 @@
                   <use [attr.href]="icons.text"></use>
                 </svg><span>Heading</span></button>
               <button class="q-btn" (click)="addSession('paragraph')" title="Add Paragraph"><svg>
-                  <use [attr.href]="icons.details"></use>
+                  <use [attr.href]="icons.para"></use>
                 </svg><span>Para</span></button>
               <button class="q-btn" (click)="addSession('image')" title="Add Image"><svg>
-                  <use [attr.href]="icons.star"></use>
+                  <use [attr.href]="icons.image"></use>
                 </svg><span>Image</span></button>
               <button class="q-btn" (click)="addSession('data-field')" title="Add Smart Field"><svg>
                   <use [attr.href]="icons.receipt"></use>
                 </svg><span>Field</span></button>
               <button class="q-btn" (click)="addSession('line')" title="Add Separator"><svg>
-                  <use [attr.href]="icons.save"></use>
+                  <use [attr.href]="icons.line"></use>
                 </svg><span>Line</span></button>
               <button class="q-btn" (click)="addSession('spacer')" title="Add Empty Space"><svg>
-                  <use [attr.href]="icons.details"></use>
+                  <use [attr.href]="icons.spacer"></use>
                 </svg><span>Spacer</span></button>
             </div>
 
@@ -536,7 +536,10 @@
 
   <!-- Component Wrapper -->
   <div class="component-wrapper" *ngIf="s.type !== 'layout-row' && s.type !== 'layout-column'"
-    [class.selected]="selectedSessionId === s.id" [style.text-align]="s.alignment" [style.color]="s.textColor"
+    [class.selected]="selectedSessionId === s.id" 
+    [style.text-align]="s.alignment" 
+    [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')"
+    [style.color]="s.textColor"
     [style.background-color]="s.bgColor" [style.padding.px]="s.padding" [style.margin-top.px]="s.margin"
     [style.margin-bottom.px]="s.margin" [style.font-size.px]="s.fontSize" [style.font-weight]="s.fontWeight"
     (click)="selectSession(s.id); $event.stopPropagation()">

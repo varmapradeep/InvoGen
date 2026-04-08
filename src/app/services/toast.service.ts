@@ -20,7 +20,7 @@ export class ToastService {
     const toast: Toast = { id, message, type };
     this.toastsSubject.next([...this.toastsSubject.value, toast]);
 
-    setTimeout(() => this.dismiss(id), 4000);
+    setTimeout(() => this.dismiss(id), 2500);
   }
 
   success(message: string) { this.show(message, 'success'); }

@@ -106,6 +106,22 @@ import { ToastService, Toast } from '../../services/toast.service';
       flex-shrink: 0;
       &:hover { opacity: 1; }
     }
+
+    @media (max-width: 768px) {
+      .toast-container {
+        pointer-events: none;
+        bottom: 80px; /* Stay clear of mobile bottom tabs */
+        max-width: 90vw;
+      }
+      .toast {
+        padding: 8px 16px;
+        font-size: 12px;
+        min-width: 200px;
+        border-radius: 12px;
+      }
+      .toast-icon { font-size: 14px; }
+      .toast-close { font-size: 16px; }
+    }
   `]
 })
 export class ToastComponent {

@@ -1,16 +1,15 @@
 /* ── Login page wrapper ─────────────────────────────────────── */
 .login-container {
-  min-height: 100vh;
+  height: 100dvh;
   width: 100vw;
   background-color: var(--login-bg);
   background-image: var(--login-overlay),
     url('../../../assets/background/loginbackground.jpg');
   background-size: cover;
   background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
   /* ← vertical breathing room */
   position: absolute;
   top: 0;
@@ -93,16 +92,21 @@
     .login-logo {
       width: 200px;
       height: auto;
-      // max-height: 72px;
       max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 3px 10px rgba(124, 58, 237, 0.2));
-      transition: opacity 0.3s ease;
+      filter: drop-shadow(0 3px 10px hsla(var(--p-h), var(--p-s), var(--p-l), 0.25));
+      transition: transform 0.3s ease;
+      animation: float 4s ease-in-out infinite;
 
       @media (max-width: 600px) {
         width: 160px;
       }
     }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
   /* Heading block */
@@ -214,13 +218,13 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%);
+      background: linear-gradient(135deg, var(--accent-color) 0%, hsl(var(--p-h), var(--p-s), calc(var(--p-l) - 10%)) 100%);
       color: #ffffff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+      box-shadow: 0 4px 12px hsla(var(--p-h), var(--p-s), var(--p-l), 0.35);
 
       &:hover:not(:disabled) {
         transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+        box-shadow: 0 6px 18px hsla(var(--p-h), var(--p-s), var(--p-l), 0.45);
       }
 
       &:active {

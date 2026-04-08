@@ -181,8 +181,7 @@ export class AuthService {
     await signOut(this.auth);
     this.currentUserSubject.next(null);
     localStorage.removeItem(STORAGE_KEY_LAST_LOGIN);
-    // Use window.location for a clean redirect that clears all state
-    window.location.href = '/login';
+    this.router.navigate(['/login']);
   }
 
   // Admin creating a user manually makes them ACTIVE immediately

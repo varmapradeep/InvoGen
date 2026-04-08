@@ -56,14 +56,14 @@
       <!-- USER / COMMON SECTION -->
       <div class="nav-section">
         <span class="nav-section-title">Workspace</span>
-        <a routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Dashboard">
+        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Dashboard">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.dashboard"></use>
           </svg>
           <span class="nav-label">Overview</span>
         </a>
 
-        <a routerLink="/documents" routerLinkActive="active" class="nav-item" title="Documents">
+        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/documents" routerLinkActive="active" class="nav-item" title="Documents">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.file"></use>
           </svg>
@@ -118,10 +118,10 @@
         <!-- Theme Toggle -->
         <button class="btn-theme-header" (click)="toggleTheme()"
           [title]="currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-          <svg class="nav-icon" style="width:16px;height:16px">
+          <svg class="nav-icon" style="width:18px;height:18px">
             <use [attr.href]="currentTheme === 'dark' ? icons.sun : icons.moon"></use>
           </svg>
-          <span class="theme-label">{{ currentTheme === 'dark' ? 'Light' : 'Dark' }}</span>
+          <span class="theme-label">{{ currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
         </button>
 
         <!-- User Dropdown Menu -->

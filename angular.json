@@ -49,22 +49,26 @@
             ],
             "scripts": []
           },
-          "configurations": {
-            "production": {
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "1MB",
-                  "maximumError": "2MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "50kB",
-                  "maximumError": "100kB"
-                }
-              ],
-              "outputHashing": "all"
-            },
+            "configurations": {
+              "production": {
+                "budgets": [
+                  {
+                    "type": "initial",
+                    "maximumWarning": "2MB",
+                    "maximumError": "4MB"
+                  },
+                  {
+                    "type": "anyComponentStyle",
+                    "maximumWarning": "50kB",
+                    "maximumError": "100kB"
+                  }
+                ],
+                "allowedCommonJsDependencies": [
+                  "html2pdf.js",
+                  "html2canvas"
+                ],
+                "outputHashing": "all"
+              },
             "development": {
               "optimization": false,
               "extractLicenses": false,

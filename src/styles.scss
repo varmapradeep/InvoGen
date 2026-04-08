@@ -1,81 +1,104 @@
 /* You can add global styles to this file, and also import other style files */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ─── DARK THEME (default) ─────────────────────────────────────── */
+/* ─── THEME TOKENS (HSL Foundation) ────────────────────────── */
 :root {
-  --bg-dark: #121212;
-  --bg-sidebar: #1a1a1a;
-  --bg-card: #242424;
-  --bg-card-hover: #2a2a2a;
+  color-scheme: dark;
+  /* Default: DARK THEME */
+  --p-h: 262; --p-s: 50%; --p-l: 55%; /* Primary: #7645c0 */
+  --s-h: 262; --s-s: 40%; --s-l: 25%; /* Surface */
+  
+  --bg-h: 0; --bg-s: 0%; --bg-l: 7%;   /* Background: #121212 */
+  --txt-h: 0; --txt-s: 0%; --txt-l: 93%; /* Text: #ededed */
+  
+  --accent-color: hsl(var(--p-h), var(--p-s), var(--p-l));
+  --accent-soft: hsla(var(--p-h), var(--p-s), var(--p-l), 0.15);
+  
+  --bg-dark: hsl(var(--bg-h), var(--bg-s), 3%);
+  --bg-sidebar: hsl(var(--bg-h), var(--bg-s), 5%);
+  --bg-surface-gradient: radial-gradient(circle at top right, hsla(var(--p-h), 30%, 15%, 0.15), transparent 40%),
+                         radial-gradient(circle at bottom left, hsla(230, 30%, 15%, 0.15), transparent 40%);
+  --bg-card: hsla(var(--bg-h), var(--bg-s), 8%, 0.6);
+  --bg-card-hover: hsl(var(--bg-h), var(--bg-s), 18%);
 
-  --text-main: #ededed;
-  --text-muted: #a0a0a0;
+  --text-main: hsl(var(--txt-h), var(--txt-s), var(--txt-l));
+  --text-muted: hsla(var(--txt-h), var(--txt-s), var(--txt-l), 0.6);
 
-  --border-color: #2e2e2e;
-  --accent-color: #7645c0;
+  --border-color: hsla(var(--txt-h), var(--txt-s), var(--txt-l), 0.1);
+  
+  --sidebar-width: 260px;
 
-  --sidebar-width: 250px;
+  --nav-hover-bg: hsla(0, 0%, 100%, 0.05);
+  --nav-active-bg: var(--accent-soft);
+  --nav-active-text: var(--accent-color);
+  --avatar-bg: hsl(var(--bg-h), var(--bg-s), 18%);
 
-  --nav-hover-bg: rgba(255, 255, 255, 0.05);
-  --nav-active-bg: rgba(167, 139, 250, 0.15);
-  --nav-active-text: #7645c0 --avatar-bg: #2e2e2e;
-
-  --theme-toggle-bg: rgba(255, 255, 255, 0.06);
-  --theme-toggle-hover-bg: rgba(255, 255, 255, 0.10);
+  --theme-toggle-bg: hsla(0, 0%, 100%, 0.06);
+  --theme-toggle-hover-bg: hsla(0, 0%, 100%, 0.1);
 
   /* Input / form */
-  --input-bg: rgba(255, 255, 255, 0.05);
-  --input-border: rgba(255, 255, 255, 0.12);
-  --input-focus-border: #7645c0 --input-focus-shadow: rgba(167, 139, 250, 0.2);
+  --input-bg: hsla(0, 0%, 100%, 0.05);
+  --input-border: hsla(0, 0%, 100%, 0.12);
+  --input-focus-border: var(--accent-color);
+  --input-focus-shadow: hsla(var(--p-h), var(--p-s), var(--p-l), 0.2);
 
-  /* Login page */
-  --login-bg: #0f0f0f;
-  --login-overlay: linear-gradient(rgb(56 60 81 / 82%), rgba(10, 10, 10, 0.88));
-  --card-surface: rgba(24, 24, 32, 0.90);
-  --toggle-surface: rgba(255, 255, 255, 0.08);
-  --toggle-surface-hover: rgba(255, 255, 255, 0.14);
-  --google-btn-bg: rgba(255, 255, 255, 0.06);
-  --google-btn-hover: rgba(255, 255, 255, 0.10);
+  /* Login page colors */
+  --login-bg: hsl(var(--bg-h), var(--bg-s), 6%);
+  --login-overlay: linear-gradient(135deg, hsla(230, 20%, 30%, 0.85), hsla(var(--bg-h), var(--bg-s), 5%, 0.95));
+  --card-surface: hsla(240, 15%, 15%, 0.9);
+  --toggle-surface: hsla(0, 0%, 100%, 0.08);
+  --toggle-surface-hover: hsla(0, 0%, 100%, 0.14);
+  --google-btn-bg: hsla(0, 0%, 100%, 0.06);
+  --google-btn-hover: hsla(0, 0%, 100%, 0.10);
+
+  --logo-filter: none;
 }
 
-/* ─── LIGHT THEME ───────────────────────────────────────────────── */
+/* ─── LIGHT THEME OVERRIDES ────────────────────────────────── */
 [data-theme='light'] {
-  --bg-dark: #f0f2f5;
+  color-scheme: light;
+  --bg-l: 96%;
+  --txt-l: 12%;
+  --p-l: 45%; /* Slightly darker primary for contrast on light */
+
+  --bg-dark: #f8fafc;
   --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f8f9fb;
+  --bg-surface-gradient: radial-gradient(circle at top right, hsla(210, 40%, 90%, 0.5), transparent 40%),
+                         radial-gradient(circle at bottom left, hsla(210, 40%, 95%, 0.5), transparent 40%);
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-card-hover: #f1f5f9;
 
-  --text-main: #111827;
-  --text-muted: #6b7280;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
 
-  --border-color: #e5e7eb;
-  --accent-color: #7c3aed;
+  --border-color: #e2e8f0;
+  --accent-color: #6366f1; /* Indigo-ish for light mode */
+  
+  --nav-hover-bg: hsla(262, 50%, 55%, 0.08);
+  --nav-active-bg: hsla(262, 50%, 55%, 0.12);
+  --nav-active-text: var(--accent-color);
 
-  --nav-hover-bg: rgba(124, 58, 237, 0.06);
-  --nav-active-bg: rgba(124, 58, 237, 0.1);
-  --nav-active-text: #7c3aed;
+  --avatar-bg: #eef2ff;
 
-  --avatar-bg: #ede9fe;
-
-  --theme-toggle-bg: rgba(0, 0, 0, 0.06);
-  --theme-toggle-hover-bg: rgba(0, 0, 0, 0.10);
+  --theme-toggle-bg: hsla(0, 0%, 0%, 0.05);
+  --theme-toggle-hover-bg: hsla(0, 0%, 0%, 0.1);
 
   /* Input / form */
   --input-bg: #ffffff;
-  --input-border: #d1d5db;
-  --input-focus-border: #7c3aed;
-  --input-focus-shadow: rgba(124, 58, 237, 0.15);
+  --input-border: #cbd5e1;
+  --input-focus-border: var(--accent-color);
+  --input-focus-shadow: hsla(262, 50%, 55%, 0.15);
 
-  /* Login page */
-  --login-bg: #f0f2f5;
+  /* Login page overrides */
+  --login-bg: #f8fafc;
+  --login-overlay: linear-gradient(135deg, hsla(210, 40%, 85%, 0.9), hsla(210, 40%, 95%, 0.95));
+  --card-surface: rgba(255, 255, 255, 0.98);
+  --toggle-surface: hsla(0, 0%, 0%, 0.06);
+  --toggle-surface-hover: hsla(0, 0%, 0%, 0.1);
+  --google-btn-bg: #f8fafc;
+  --google-btn-hover: #f1f5f9;
 
-  // --login-overlay: linear-gradient(rgba(240, 242, 245, 0.88), rgba(240, 242, 245, 0.92));
-  --login-overlay: linear-gradient(rgb(106 119 139 / 88%), rgb(168 180 198 / 92%));
-  --card-surface: rgba(255, 255, 255, 0.95);
-  --toggle-surface: rgba(0, 0, 0, 0.06);
-  --toggle-surface-hover: rgba(0, 0, 0, 0.10);
-  --google-btn-bg: #f9fafb;
-  --google-btn-hover: #f3f4f6;
+  --logo-filter: brightness(0.2) contrast(1.2); 
 }
 
 * {
@@ -85,11 +108,16 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-dark);
+  background-image: var(--bg-surface-gradient);
+  background-attachment: fixed;
   color: var(--text-main);
+  min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 button {

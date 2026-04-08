@@ -99,11 +99,12 @@ export class LoginComponent {
     }
     this.loading = true;
     const success = await this.authService.resetPassword(this.email);
-    this.loading = false;
     if (success) {
       this.toast.success('Password reset email sent! Check your inbox.');
       this.setViewMode('login');
+      this.loading = false; // Reset loading only after switching view
     } else {
+      this.loading = false;
       this.toast.error('Failed to send reset email. Ensure the email is correct.');
     }
   }

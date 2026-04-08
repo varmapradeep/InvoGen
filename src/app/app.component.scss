@@ -1,15 +1,4 @@
-:root {
-  --primary-color: #7c3aed;
-  --accent-color: #8b5cf6;
-  --bg-dark: #0f172a;
-  --bg-sidebar: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --bg-sidebar: #0f172a;
-  --nav-active-bg: rgba(139, 92, 246, 0.15);
-}
-
+/* Layout and Component level styles */
 .app-init-loader {
   position: fixed;
   top: 0;
@@ -95,7 +84,7 @@ body {
 
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   position: relative;
@@ -427,8 +416,9 @@ body {
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--theme-toggle-hover-bg);
     border-color: var(--accent-color);
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.1);
   }
 
   .theme-label {

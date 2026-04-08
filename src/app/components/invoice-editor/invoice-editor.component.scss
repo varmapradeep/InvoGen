@@ -6,9 +6,9 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background: #f0f4f8;
-  font-family: 'Outfit', 'Inter', sans-serif;
-  color: #1e293b;
+  background: var(--bg-dark);
+  font-family: 'Inter', sans-serif;
+  color: var(--text-main);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -21,12 +21,12 @@
    ============================================================ */
 .builder-sidebar {
   width: 272px;
-  background: linear-gradient(180deg, #0c1629 0%, #0f172a 100%);
-  color: #f8fafc;
+  background: var(--bg-sidebar);
+  color: var(--text-main);
   display: flex;
   flex-direction: column;
   z-index: 20;
-  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 
   @media (max-width: 768px) {
@@ -37,8 +37,8 @@
   /* ---- Header ---- */
   .sidebar-header {
     padding: 20px 16px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
+    background: hsla(0, 0%, 100%, 0.02);
 
     .brand {
       display: flex;
@@ -56,8 +56,8 @@
         font-size: 15px;
         font-weight: 900;
         letter-spacing: -0.5px;
-        color: #fff;
-        background: linear-gradient(90deg, #fff 60%, var(--accent-color));
+        color: var(--text-main);
+        background: linear-gradient(90deg, var(--text-main) 60%, var(--accent-color));
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -102,10 +102,10 @@
   /* ---- Layout Picker ---- */
   .layout-picker-modal {
     margin: 8px;
-    background: #1e293b;
+    background: var(--bg-card);
     border-radius: 10px;
     padding: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
 
     .picker-header {
       display: flex;
@@ -118,7 +118,7 @@
         font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #64748b;
+        color: var(--text-muted);
       }
 
       button {
@@ -130,7 +130,7 @@
         line-height: 1;
 
         &:hover {
-          color: #fff;
+          color: var(--text-main);
         }
       }
     }
@@ -176,7 +176,7 @@
         span {
           font-size: 10px;
           font-weight: 600;
-          color: #94a3b8;
+          color: var(--text-muted);
         }
       }
     }
@@ -203,14 +203,14 @@
         font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 2px;
-        color: #475569;
+        color: var(--text-muted);
       }
 
       .layers-count {
         font-size: 9px;
         font-weight: 900;
-        background: rgba(255, 255, 255, 0.07);
-        color: #64748b;
+        background: hsla(0, 0%, 100%, 0.07);
+        color: var(--text-muted);
         padding: 2px 8px;
         border-radius: 20px;
         letter-spacing: 0.5px;
@@ -319,11 +319,11 @@
   transition: border-color 0.15s;
 
   &.active {
-    border-color: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-color);
   }
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-color);
   }
 }
 
@@ -340,15 +340,15 @@
 
   /* --- Row header specific --- */
   &.row-head {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--nav-hover-bg);
     border-radius: 7px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--nav-active-bg);
     }
 
     &.selected {
-      background: rgba(255, 255, 255, 0.07);
+      background: var(--nav-active-bg);
       border-left: 2px solid var(--accent-color);
     }
   }
@@ -374,19 +374,19 @@
     height: 18px;
     flex-shrink: 0;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     transition: all 0.2s;
     font-size: 10px;
-    color: #94a3b8;
+    color: var(--text-muted);
     line-height: 1;
     padding: 0;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      background: var(--nav-active-bg);
+      border-color: var(--accent-color);
+      color: var(--text-main);
     }
   }
 
@@ -430,7 +430,7 @@
     }
 
     &:hover {
-      color: #e2e8f0;
+      color: var(--text-main);
     }
   }
 
@@ -509,11 +509,11 @@
 
   &:hover .t-del {
     opacity: 1;
-    color: #475569;
+    color: var(--text-muted);
   }
 
   &.selected .t-label {
-    color: #e2e8f0;
+    color: var(--text-main);
   }
 }
 
@@ -579,16 +579,12 @@
   min-height: 26px;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.04);
-  }
-
-  &.selected {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--nav-active-bg);
     border-left: 2px solid var(--accent-color);
     padding-left: 4px;
 
     .t-label {
-      color: #fff;
+      color: var(--text-main);
     }
 
     .el-type-badge {
@@ -619,8 +615,8 @@
     letter-spacing: 0.3px;
     padding: 2px 5px;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.07);
-    color: #64748b;
+    background: hsla(0, 0%, 100%, 0.07);
+    color: var(--text-muted);
     flex-shrink: 0;
     transition: all 0.15s;
   }
@@ -682,13 +678,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #eef2f7;
+  background: var(--bg-dark);
 
   .preview-toolbar {
     height: 56px;
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--bg-sidebar);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid #e8edf3;
+    border-bottom: 1px solid var(--border-color);
     padding: 0 20px;
     display: flex;
     align-items: center;
@@ -696,13 +692,13 @@
     box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
 
     .zoom-controls {
-      background: #f1f5f9;
+      background: var(--input-bg);
       padding: 4px 10px;
       border-radius: 20px;
       display: flex;
       align-items: center;
       gap: 8px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
 
       button {
         background: none;
@@ -984,15 +980,15 @@
 /* --- Right: Property Inspector --- */
 .property-inspector {
   width: 320px;
-  background: #fff;
-  border-left: 1px solid #e2e8f0;
+  background: var(--bg-sidebar);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   z-index: 10;
 
   .inspector-header {
     padding: 24px 20px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-color);
 
     .ins-title {
       h3 {
@@ -1004,14 +1000,14 @@
       p {
         margin: 2px 0 0;
         font-size: 11px;
-        color: #94a3b8;
+        color: var(--text-muted);
         text-transform: uppercase;
       }
     }
 
     .inspector-tabs {
       display: flex;
-      background: #f1f5f9;
+      background: var(--bg-dark);
       border-radius: 10px;
       padding: 4px;
       margin-top: 15px;
@@ -1028,9 +1024,9 @@
         color: #64748b;
 
         &.active {
-          background: #fff;
-          color: #1e293b;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          background: var(--bg-sidebar);
+          color: var(--text-main);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
       }
     }
@@ -1068,10 +1064,11 @@
     textarea {
       width: 100%;
       padding: 10px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 13px;
+      color: var(--text-main);
       outline: none;
 
       &:focus {
@@ -1079,9 +1076,15 @@
       }
     }
 
+    /* Fix for native dropdown options visibility */
+    select option {
+      background-color: var(--bg-sidebar);
+      color: var(--text-main);
+    }
+
     .toggle-group {
       display: flex;
-      background: #f1f5f9;
+      background: var(--bg-dark);
       border-radius: 8px;
       padding: 2px;
 
@@ -1097,8 +1100,9 @@
         color: #64748b;
 
         &.active {
-          background: #fff;
-          color: var(--accent-color);
+          background: var(--accent-color);
+          color: white;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
       }
     }
@@ -1471,6 +1475,7 @@
 }
 
 .component-wrapper {
+  width: 100%;
   margin-bottom: 0;
   position: relative;
   border: 1px solid transparent;
@@ -1802,16 +1807,13 @@
       }
 
       &.active {
-        background: var(--accent-color);
-        color: #ffffff;
-        border-radius: 10px;
+        background: var(--nav-active-bg);
+        color: #7745be;
+        border-radius: 12px;
 
-        svg {
-          color: #ffffff;
-        }
-
-        span {
-          color: #ffffff;
+        svg, span {
+          color: #7745be !important;
+          opacity: 1 !important;
         }
       }
 
@@ -1824,23 +1826,60 @@
 
   /* Toolbar Tweaks for Mobile */
   .preview-toolbar {
-    padding: 0 10px !important;
+    padding: 10px !important;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
     height: auto !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    background: var(--bg-sidebar) !important;
+
+    .zoom-controls {
+      display: none !important;
+    }
+
+    .preview-actions {
+      display: contents; /* Allow individual buttons to be ordered */
+      
+      button {
+        order: 2;
+        font-size: 10px !important;
+        padding: 6px 10px !important;
+        margin: 0;
+        
+        &.btn-icon-action {
+          order: 3;
+          flex: 1 1 auto;
+          justify-content: center;
+          margin-top: 4px;
+        }
+      }
+    }
   }
 
-  .preview-actions button {
-    font-size: 10px !important;
-    padding: 6px 10px !important;
+  /* Specific grouping for history buttons to stay on one line */
+  .preview-actions .btn-icon-action:first-of-type {
+     margin-left: 0;
   }
 
   /* Canvas scale tweaking for 100vw */
   .preview-scroll-area {
     padding: 20px 10px !important;
+  }
+
+  /* Side Panel Control Sizes for Touch */
+  .tree-toggle, .t-del {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 14px !important;
+  }
+
+  .drag-handle {
+    padding: 8px !important;
+    font-size: 16px !important;
+  }
+
+  .tree-node-header {
+    min-height: 40px !important;
   }
 }
 
@@ -1869,10 +1908,15 @@
     }
 
     /* Brand: disable gradient text so it's readable on light bg */
-    .sidebar-header .brand span {
-      background: none !important;
-      -webkit-text-fill-color: var(--text-main) !important;
-      color: var(--text-main) !important;
+    .sidebar-header .brand {
+      img {
+        filter: var(--logo-filter, none);
+      }
+      span {
+        background: none !important;
+        -webkit-text-fill-color: var(--text-main) !important;
+        color: var(--text-main) !important;
+      }
     }
 
     .sidebar-footer {
@@ -1907,6 +1951,18 @@
     .layers-count {
       background: var(--input-bg) !important;
       color: var(--text-muted) !important;
+    }
+  }
+
+  /* Tree Toggles */
+  .tree-toggle {
+    background: var(--input-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+
+    &:hover {
+      background: var(--nav-hover-bg) !important;
+      border-color: var(--accent-color) !important;
     }
   }
 
@@ -2037,8 +2093,9 @@
         color: var(--text-muted) !important;
 
         &.active {
-          background: var(--bg-sidebar) !important;
-          color: var(--accent-color) !important;
+          background: var(--accent-color) !important;
+          color: white !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
         }
       }
     }
@@ -2209,10 +2266,21 @@
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
 
+    &.btn-save {
+      background: var(--accent-color) !important;
+      border-color: var(--accent-color) !important;
+      color: #fff !important;
+    }
+
     &:hover {
       border-color: var(--accent-color) !important;
       background: var(--nav-hover-bg) !important;
       color: var(--accent-color) !important;
+      
+      &.btn-save {
+        opacity: 0.9;
+        color: #fff !important;
+      }
     }
   }
 
@@ -2241,8 +2309,9 @@
         }
 
         &.active {
-          background: var(--nav-hover-bg) !important;
+          background: var(--nav-active-bg) !important;
           color: var(--accent-color) !important;
+          border-radius: 12px;
         }
       }
     }

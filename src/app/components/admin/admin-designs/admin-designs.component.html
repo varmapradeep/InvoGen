@@ -1,11 +1,13 @@
 <div class="admin-layout animated-fade-in">
   <div class="admin-header">
     <div class="title-section">
-      <svg class="admin-icon"><use [attr.href]="icons.grid"></use></svg>
-      <h1>Invoice Design Center</h1>
+      <svg class="admin-icon">
+        <use [attr.href]="icons.edit"></use>
+      </svg>
+      <h2>Invoice Design Center</h2>
     </div>
     <div class="header-actions">
-      <button class="btn-primary" (click)="createTemplate()">
+      <button class="btn-primary hide-on-mobile" (click)="createTemplate()">
         <span class="plus">+</span> New Design
       </button>
     </div>
@@ -25,16 +27,21 @@
       <div class="design-preview" [style.border-top-color]="template.fullData.theme.primaryColor">
         <!-- Professional Mockup -->
         <div class="preview-mockup">
-           <div class="mock-header" [style.background]="template.fullData.theme.primaryColor + '15'"></div>
-           <div class="mock-line short"></div>
-           <div class="mock-line"></div>
-           <div class="mock-table">
-              <div class="h"></div><div class="r"></div><div class="r"></div>
-           </div>
+          <div class="mock-header" [style.background]="template.fullData.theme.primaryColor + '15'"></div>
+          <div class="mock-line short"></div>
+          <div class="mock-line"></div>
+          <div class="mock-table">
+            <div class="h"></div>
+            <div class="r"></div>
+            <div class="r"></div>
+          </div>
         </div>
 
-        <button class="btn-delete-card" (click)="$event.stopPropagation(); deleteTemplate(template.id)" title="Delete Template">
-          <svg><use [attr.href]="icons.delete"></use></svg>
+        <button class="btn-delete-card" (click)="$event.stopPropagation(); deleteTemplate(template.id)"
+          title="Delete Template">
+          <svg>
+            <use [attr.href]="icons.delete"></use>
+          </svg>
         </button>
 
         <div class="card-overlay">
@@ -47,12 +54,12 @@
       </div>
     </div>
   </div>
-
+  <!-- 
   <div class="empty-state" *ngIf="!loading && templates.length === 0">
     <p>No system templates found. Start by creating a new design.</p>
   </div>
   
   <div class="loading-state" *ngIf="loading">
     <p>Loading design records...</p>
-  </div>
+  </div> -->
 </div>

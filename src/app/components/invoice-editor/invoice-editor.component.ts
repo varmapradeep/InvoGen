@@ -103,6 +103,14 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     private layoutService: LayoutService
   ) {}
 
+  exitEditor() {
+    if (this.currentUser?.role === 'ADMIN') {
+      this.router.navigate(['/admin/designs']);
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
+  }
+
   async ngOnInit() {
     this.layoutService.setSidebarCollapsed(true);
     
