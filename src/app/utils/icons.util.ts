@@ -1,4 +1,4 @@
-const SPRITE = '/assets/icons/sprite.svg';
+const SPRITE = 'assets/icons/sprite.svg';
 
 export const Icons = {
   // Sidebar / nav
