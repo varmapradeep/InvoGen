@@ -718,3 +718,184 @@
     opacity: 1;
   }
 }
+
+/* ── MOBILE RESPONSIVENESS ── */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+
+  .dashboard-page-header {
+    margin-bottom: 20px;
+
+    .header-content {
+      gap: 12px;
+
+      .icon-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+
+        .header-icon {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+    }
+  }
+
+  .widgets-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+
+    .widget-card {
+      padding: 16px;
+      border-radius: 16px;
+
+      .widget-info {
+        .w-label {
+          font-size: 10px;
+        }
+
+        .w-value {
+          font-size: 22px;
+          margin: 4px 0;
+        }
+      }
+
+      .w-icon-bg {
+        width: 80px;
+        height: 80px;
+        right: -10px;
+        bottom: -10px;
+      }
+    }
+  }
+
+  .dashboard-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+
+    .section-title {
+      font-size: 18px;
+    }
+    
+    .header-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+  .grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+  }
+
+  .action-card, .invoice-card {
+    height: 240px;
+    border-radius: 16px;
+  }
+
+  .action-card .dashed-border {
+    padding: 16px;
+    gap: 16px;
+
+    .plus-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+
+      .p-svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .card-label {
+      font-size: 13px;
+    }
+  }
+
+  .invoice-card {
+    .preview-skeleton {
+      padding: 16px;
+      
+      .s-badge {
+        top: 10px;
+        right: 10px;
+        font-size: 8px;
+      }
+    }
+    
+    .card-footer-info {
+      padding: 12px;
+
+      .footer-row-top {
+        margin-bottom: 8px;
+
+        .customer-name {
+          font-size: 14px;
+        }
+      }
+
+      .footer-row-bottom {
+        .date {
+          font-size: 11px;
+        }
+        .total {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+
+  .templates-section {
+    margin-bottom: 32px;
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+
+      .h-text {
+        .section-title {
+          font-size: 18px;
+        }
+        .section-subtitle {
+          font-size: 12px;
+        }
+      }
+
+      .btn-gallery {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+
+  .templates-scroll-container {
+    gap: 16px;
+    
+    .template-card {
+      flex: 0 0 150px;
+
+      .template-preview {
+        height: 200px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+      }
+
+      .template-info .template-name {
+        font-size: 12px;
+      }
+    }
+  }
+}
