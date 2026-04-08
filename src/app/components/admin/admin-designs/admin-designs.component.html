@@ -1,0 +1,58 @@
+<div class="admin-layout animated-fade-in">
+  <div class="admin-header">
+    <div class="title-section">
+      <svg class="admin-icon"><use [attr.href]="icons.grid"></use></svg>
+      <h1>Invoice Design Center</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="createTemplate()">
+        <span class="plus">+</span> New Design
+      </button>
+    </div>
+  </div>
+
+  <div class="designs-grid-container">
+    <!-- Create New Card -->
+    <div class="design-card create-new" (click)="createTemplate()">
+      <div class="create-content">
+        <div class="plus-circle">+</div>
+        <span>Create New Template</span>
+      </div>
+    </div>
+
+    <!-- Template Cards -->
+    <div class="design-card animated-up" *ngFor="let template of templates" (click)="editTemplate(template)">
+      <div class="design-preview" [style.border-top-color]="template.fullData.theme.primaryColor">
+        <!-- Professional Mockup -->
+        <div class="preview-mockup">
+           <div class="mock-header" [style.background]="template.fullData.theme.primaryColor + '15'"></div>
+           <div class="mock-line short"></div>
+           <div class="mock-line"></div>
+           <div class="mock-table">
+              <div class="h"></div><div class="r"></div><div class="r"></div>
+           </div>
+        </div>
+
+        <button class="btn-delete-card" (click)="$event.stopPropagation(); deleteTemplate(template.id)" title="Delete Template">
+          <svg><use [attr.href]="icons.delete"></use></svg>
+        </button>
+
+        <div class="card-overlay">
+          <span>Launch Editor</span>
+        </div>
+      </div>
+      <div class="design-info">
+        <span class="design-name">{{ template.name }}</span>
+        <span class="design-meta">Global System Template</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && templates.length === 0">
+    <p>No system templates found. Start by creating a new design.</p>
+  </div>
+  
+  <div class="loading-state" *ngIf="loading">
+    <p>Loading design records...</p>
+  </div>
+</div>

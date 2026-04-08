@@ -1,0 +1,46 @@
+<div class="admin-layout animated-fade-in">
+  <div class="admin-header">
+    <div class="title-section">
+      <svg class="admin-icon"><use [attr.href]="icons.grid"></use></svg>
+      <h1>System Governance Overview</h1>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">{{ totalUsers }}</div>
+      <div class="stat-sub">Registered accounts</div>
+    </div>
+    <div class="stat-card highlight">
+      <div class="stat-label">Pending Approval</div>
+      <div class="stat-value">{{ pendingUsersCount }}</div>
+      <div class="stat-sub">Requires admin action</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">System Designs</div>
+      <div class="stat-value">{{ templateCount }}</div>
+      <div class="stat-sub">Global templates</div>
+    </div>
+  </div>
+
+  <div class="overview-grid">
+    <div class="overview-section" routerLink="/admin/users">
+       <div class="section-icon users"><svg><use [attr.href]="icons.users"></use></svg></div>
+       <div class="section-text">
+          <h3>User Governance</h3>
+          <p>Manage account approvals, roles, and security privileges.</p>
+       </div>
+       <div class="section-count">{{ pendingUsersCount }} Pending</div>
+    </div>
+    <div class="overview-section" routerLink="/admin/designs">
+       <div class="section-icon designs"><svg><use [attr.href]="icons.grid"></use></svg></div>
+       <div class="section-text">
+          <h3>Design Center</h3>
+          <p>Create and refine the system's global invoice templates.</p>
+       </div>
+       <div class="section-count">{{ templateCount }} Templates</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,107 @@
+<div class="editor-layout">
+  <main class="preview-panel" style="width: 100%;">
+    
+    <div class="viewer-actions" style="width: 100%; max-width: 820px; display: flex; justify-content: space-between; margin: 20px auto;">
+      <button class="btn-back" (click)="goBack()">
+        ← Back to Dashboard
+      </button>
+      <button class="btn-generate" style="width: auto; padding: 10px 24px;" (click)="printInvoice()">
+        Print / Save PDF
+      </button>
+    </div>
+
+    <div class="zoom-container" *ngIf="!loading && invoice">
+      <div class="invoice-wrap">
+        <div class="invoice" id="invoiceDoc" [style.--primary-color]="theme.primaryColor">
+          <div class="session-loop-container">
+            <div *ngFor="let s of sessions" 
+                 class="session-render" 
+                 [class.half-width]="s.width === 'half'"
+                 [style.text-align]="s.alignment">
+              
+              <!-- Header -->
+              <div *ngIf="s.type === 'header'" class="render-header">
+                <div class="inv-brand">
+                  <div class="inv-logo" *ngIf="s.content.customLogo || currentUser?.companyLogoUrl">
+                    <img [src]="s.content.customLogo || currentUser?.companyLogoUrl" alt="Logo" [style.max-height.px]="s.content.logoSize">
+                  </div>
+                  <h2>{{ currentUser?.companyName || 'COMPANY NAME' }}</h2>
+                  <p>{{ currentUser?.companyAddress || 'COMPANY ADDRESS' }}</p>
+                </div>
+                <div class="inv-title">
+                  <h1 [style.color]="theme.primaryColor">INVOICE</h1>
+                </div>
+              </div>
+
+              <!-- Parties (From / To) -->
+              <div *ngIf="s.type === 'billed-to'" class="render-parties-row" [style.text-align]="s.alignment">
+                <div class="party-col from">
+                  <div class="m-lbl" [style.color]="theme.primaryColor">FROM:</div>
+                  <div class="m-val name">{{ s.content.fromName || currentUser?.companyName }}</div>
+                  <div class="m-val address">{{ s.content.fromAddress || currentUser?.companyAddress }}</div>
+                </div>
+                <div class="party-col to">
+                  <div class="m-lbl" [style.color]="theme.primaryColor">BILLED TO:</div>
+                  <div class="m-val name">{{ s.content.name || 'Customer Name' }}</div>
+                  <div class="m-val address">{{ s.content.address || 'Customer Address' }}</div>
+                </div>
+              </div>
+
+              <!-- Details Bar -->
+              <div *ngIf="s.type === 'details'" class="render-details-row">
+                <div class="detail-item"><span>#:</span> {{ invoice.invoiceNo }}</div>
+                <div class="detail-item"><span>Date:</span> {{ invoice.dateCreated }}</div>
+              </div>
+
+              <!-- Generic Text Block (Note/Custom) -->
+              <div *ngIf="s.type === 'note' || s.type === 'custom'" class="render-text-block">
+                <h4 *ngIf="s.title" [style.color]="theme.primaryColor">{{ s.title }}</h4>
+                <div class="text-content" [class.bold]="s.isBold" [class.italic]="s.isItalic">{{ s.content }}</div>
+              </div>
+
+              <!-- Items Table -->
+              <div *ngIf="s.type === 'items'" class="render-table">
+                <table [style.border-top-color]="theme.primaryColor">
+                  <thead>
+                    <tr [style.background]="theme.primaryColor + '15'"><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of s.content">
+                      <td>{{ item.description || '—' }}</td>
+                      <td>{{ item.qty }}</td>
+                      <td>{{ item.rate || 0 | number:'1.2-2' }}</td>
+                      <td>{{ (item.qty * item.rate) | number:'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Grand Total -->
+              <div *ngIf="s.type === 'tax'" class="render-totals">
+                <div class="totals-box">
+                  <div class="t-row t-grand" [style.background]="theme.primaryColor + '10'" [style.border-color]="theme.primaryColor">
+                    <span [style.color]="theme.primaryColor">Grand Total</span>
+                    <span [style.color]="theme.primaryColor">Rs. {{ grandTotal | number:'1.2-2' }}/-</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Line -->
+              <div *ngIf="s.type === 'line'" class="render-line" [style.border-top-width.px]="s.content.thickness" [style.border-top-color]="s.content.color || '#edf2f7'"></div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <p>Loading document details...</p>
+    </div>
+
+    <div *ngIf="!loading && !invoice" class="error-state">
+      <p>Invoice not found or could not be loaded.</p>
+    </div>
+
+  </main>
+</div>

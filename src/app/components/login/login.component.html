@@ -1,0 +1,94 @@
+<app-toast></app-toast>
+<div class="login-container">
+
+  <!-- Theme Toggle (top-right corner) -->
+  <button class="login-theme-toggle" (click)="themeService.toggleTheme()" [title]="currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+    <ng-container *ngIf="currentTheme === 'dark'">
+      <svg style="width:18px;height:18px"><use [attr.href]="icons.sun"></use></svg>
+      <span>Light</span>
+    </ng-container>
+    <ng-container *ngIf="currentTheme === 'light'">
+      <svg style="width:18px;height:18px"><use [attr.href]="icons.moon"></use></svg>
+      <span>Dark</span>
+    </ng-container>
+  </button>
+
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="logo-area">
+      <img *ngIf="currentTheme === 'dark'" src="assets/logo/DarkTheme.png" alt="InvoGen" class="login-logo" />
+      <img *ngIf="currentTheme === 'light'" src="assets/logo/LightTheme.png" alt="InvoGen" class="login-logo" />
+    </div>
+
+    <!-- Heading -->
+    <div class="heading-area">
+      <h2>
+        <span *ngIf="viewMode === 'login'">Welcome back</span>
+        <span *ngIf="viewMode === 'signup'">Create Account</span>
+        <span *ngIf="viewMode === 'forgot'">Reset Password</span>
+      </h2>
+      <p class="subtitle">
+        <span *ngIf="viewMode === 'login'">Sign in to your account to continue</span>
+        <span *ngIf="viewMode === 'signup'">Register to start managing invoices</span>
+        <span *ngIf="viewMode === 'forgot'">We'll send you an email to reset it</span>
+      </p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="login-form">
+
+      <!-- Signup extra field -->
+      <div class="form-group" *ngIf="viewMode === 'signup'">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="name" name="name" placeholder="Enter your name" required>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" [(ngModel)]="email" name="email" placeholder="Enter your email" required>
+      </div>
+
+      <div class="form-group" *ngIf="viewMode !== 'forgot'">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" (click)="showPassword = !showPassword" [title]="showPassword ? 'Hide Password' : 'Show Password'">
+            <svg style="width:18px;height:18px">
+              <use [attr.href]="showPassword ? icons.eyeOff : icons.eye"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" [disabled]="loading">
+          <span *ngIf="!loading && viewMode === 'login'">Sign In</span>
+          <span *ngIf="!loading && viewMode === 'signup'">Create Account</span>
+          <span *ngIf="!loading && viewMode === 'forgot'">Reset Password</span>
+          <span *ngIf="loading">Please wait...</span>
+        </button>
+      </div>
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-google" (click)="loginWithGoogle()">
+          <svg style="width:18px;height:18px"><use [attr.href]="icons.google"></use></svg>
+          Sign In with Google
+        </button>
+      </div>
+
+      <!-- Footer toggles -->
+      <div class="auth-toggle">
+        <p *ngIf="viewMode === 'login'">Don't have an account? <a href="javascript:void(0)" (click)="setViewMode('signup')">Sign up</a></p>
+        <p *ngIf="viewMode !== 'login'">Back to <a href="javascript:void(0)" (click)="setViewMode('login')">Sign in</a></p>
+        <p *ngIf="viewMode === 'login'" class="forgot-row">
+          <a href="javascript:void(0)" (click)="setViewMode('forgot')">Forgot Password?</a>
+        </p>
+      </div>
+    </form>
+
+  </div>
+</div>

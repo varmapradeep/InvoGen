@@ -1,0 +1,124 @@
+<div class="admin-layout animated-fade-in">
+  <div class="admin-header">
+    <div class="title-section">
+      <svg class="admin-icon"><use [attr.href]="icons.users"></use></svg>
+      <h1>User Security & Governance</h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary" routerLink="/admin/create-user">
+        <span class="plus">+</span> Add New User
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Controls -->
+  <div class="table-controls">
+    <div class="search-box">
+       <svg class="search-icon"><use [attr.href]="icons.search"></use></svg>
+       <input type="text" [(ngModel)]="searchQuery" placeholder="Search users by name or email...">
+    </div>
+    <div class="filter-tabs">
+      <button [class.active]="statusFilter === 'ALL'" (click)="statusFilter = 'ALL'">All</button>
+      <button [class.active]="statusFilter === 'ACTIVE'" (click)="statusFilter = 'ACTIVE'">Active</button>
+      <button [class.active]="statusFilter === 'PENDING'" (click)="statusFilter = 'PENDING'">Pending</button>
+    </div>
+  </div>
+
+  <div class="admin-main-card">
+    <div class="table-responsive">
+      <table class="premium-table">
+        <thead>
+          <tr>
+            <th (click)="setSort('name')">User <span>{{ sortField === 'name' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</span></th>
+            <th (click)="setSort('role')">Role <span>{{ sortField === 'role' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</span></th>
+            <th (click)="setSort('status')">Status <span>{{ sortField === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : '' }}</span></th>
+            <th class="text-right">Operations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of pagedUsers">
+            <td>
+              <div class="user-info-cell">
+                <div class="user-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
+                <div class="user-details">
+                  <span class="user-name">{{ user.name }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="role-badge" [class.admin]="user.role === 'ADMIN'">{{ user.role }}</span>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="user.status === 'ACTIVE'">
+                {{ user.status === 'ACTIVE' ? 'Verified' : 'Pending' }}
+              </span>
+            </td>
+            <td class="text-right">
+              <div class="actions-group">
+                <button *ngIf="user.status === 'PENDING' && user.role !== 'ADMIN'" class="act-btn approve" (click)="approveUser(user.id)" title="Approve">
+                  <svg class="act-i"><use [attr.href]="icons.save"></use></svg>
+                  <span>Approve</span>
+                </button>
+                 <button *ngIf="user.status === 'ACTIVE' && user.role !== 'ADMIN'" class="act-btn revoke" (click)="unapproveUser(user.id)" title="Revoke Access">
+                  <svg class="act-i"><use [attr.href]="icons.moon"></use></svg>
+                  <span>Revoke</span>
+                </button>
+                <button class="act-btn edit" (click)="openEdit(user)" title="Edit">
+                  <svg class="act-i"><use [attr.href]="icons.edit"></use></svg>
+                  <span>Edit</span>
+                </button>
+                <button class="act-btn delete" (click)="deleteUser(user)" title="Delete" *ngIf="user.role !== 'ADMIN'">
+                  <svg class="act-i"><use [attr.href]="icons.delete"></use></svg>
+                  <span>Delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination-footer">
+       <span class="total-info">Showing page {{ currentPage }} of results</span>
+       <div class="page-btns">
+         <button *ngFor="let p of filteredPages" [class.active]="p === currentPage" (click)="currentPage = p">{{ p }}</button>
+       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal Overlay -->
+<div class="modal-overlay" *ngIf="editingUser" (click)="closeEdit()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Review Account Access</h3>
+      <button class="close-modal" (click)="closeEdit()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="editForm.name">
+      </div>
+      <div class="form-group">
+        <label>Role Privilege</label>
+        <select [(ngModel)]="editForm.role">
+          <option value="USER">USER - Standard Dashboard</option>
+          <option value="ADMIN">ADMIN - Full Governance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Account Status</label>
+        <select [(ngModel)]="editForm.status">
+          <option value="ACTIVE">ACTIVE - Access Granted</option>
+          <option value="PENDING">PENDING - Approval Required</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeEdit()">Discard</button>
+      <button class="btn-save" (click)="saveEdit()">Commit Changes</button>
+    </div>
+  </div>
+</div>

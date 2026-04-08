@@ -1,0 +1,644 @@
+<div class="builder-container animated-fade-in" [ngClass]="'mobile-view-' + mobileActiveView"
+  [style.--accent-color]="theme.primaryColor" [style.--font-family]="theme.fontFamily">
+
+  <!-- LEFT: Layer Navigator -->
+  <aside class="builder-sidebar">
+    <!-- Header -->
+    <div class="sidebar-header">
+      <div class="brand">
+        <img src="assets/logo/Logoonly.png" alt="InvoGen" style="width: 46px; height: 46px; object-fit: contain;">
+        <span>InvoGen Builder</span>
+      </div>
+      <button class="btn-add-layout-main" (click)="showLayoutPicker = !showLayoutPicker">
+        <span class="plus">+</span> New Layout
+      </button>
+    </div>
+
+    <!-- Layout Picker Overlay -->
+    <div class="layout-picker-modal animated-fade-in" *ngIf="showLayoutPicker">
+      <div class="picker-header">
+        <span>Select Row Structure</span>
+        <button (click)="showLayoutPicker = false">&times;</button>
+      </div>
+      <div class="picker-grid">
+        <div class="p-option" (click)="addLayoutRow(1)">
+          <div class="p-preview single"></div>
+          <span>Full Width</span>
+        </div>
+        <div class="p-option" (click)="addLayoutRow(2)">
+          <div class="p-preview double"></div>
+          <span>2 Columns</span>
+        </div>
+        <div class="p-option" (click)="addLayoutRow(3)">
+          <div class="p-preview triple"></div>
+          <span>3 Columns</span>
+        </div>
+        <div class="p-option" (click)="addLayoutRow(4)">
+          <div class="p-preview quad"></div>
+          <span>4 Columns</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer Explorer Tree -->
+    <div class="layer-explorer-section">
+      <div class="layers-header">
+        <span>Layer Explorer</span>
+        <span class="layers-count">{{ sessions.length }}</span>
+      </div>
+
+      <div class="layers-tree-container" cdkDropList (cdkDropListDropped)="dropRow($event)">
+
+        <!-- Empty state -->
+        <div class="layers-empty" *ngIf="sessions.length === 0">
+          <p>No layouts yet.</p>
+          <button (click)="showLayoutPicker = true">+ Add First Layout</button>
+        </div>
+
+        <!-- Row Node -->
+        <div *ngFor="let row of sessions; let ri = index" cdkDrag [cdkDragData]="row" class="tree-row-node"
+          [class.active]="selectedSessionId === row.id">
+
+          <!-- Row Header -->
+          <div class="tree-node-header row-head" [class.selected]="selectedSessionId === row.id"
+            (click)="selectSession(row.id); $event.stopPropagation()">
+            <div class="drag-handle" cdkDragHandle>⠿</div>
+
+            <!-- Toggle collapse (click propagation stopped so row isn't selected) -->
+            <button class="tree-toggle" (click)="expandedRows[row.id] = !expandedRows[row.id]; $event.stopPropagation()"
+              [title]="expandedRows[row.id] ? 'Collapse' : 'Expand'">
+              {{ expandedRows[row.id] ? '▾' : '▸' }}
+            </button>
+
+            <svg class="t-icon">
+              <use [attr.href]="icons.grid"></use>
+            </svg>
+
+            <!-- Inline rename for row -->
+            <input *ngIf="editingNameId === row.id" class="t-rename-input"
+              [value]="getDisplayName(row.id, 'Row ' + (ri + 1))"
+              (blur)="confirmRename(row.id, $any($event.target).value)"
+              (keydown.enter)="confirmRename(row.id, $any($event.target).value)" (click)="$event.stopPropagation()"
+              autofocus>
+            <span *ngIf="editingNameId !== row.id" class="t-label" (dblclick)="startRename(row.id, $event)"
+              title="Double-click to rename">
+              {{ getDisplayName(row.id, 'Row ' + (ri + 1)) }}
+            </span>
+
+            <span class="t-badge row-badge">{{ row.sessions?.length || 0 }} col</span>
+            <button class="t-del" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
+          </div>
+
+          <!-- Columns — only shown when row is expanded -->
+          <div class="tree-children" *ngIf="expandedRows[row.id]">
+            <div *ngFor="let col of row.sessions; let ci = index" class="tree-col-node"
+              [class.selected]="selectedColumnId === col.id" (click)="selectColumn(col.id); $event.stopPropagation()">
+
+              <!-- Column Header -->
+              <div class="tree-node-header col-head">
+                <svg class="t-icon">
+                  <use [attr.href]="icons.dashboard"></use>
+                </svg>
+
+                <!-- Inline rename for column -->
+                <input *ngIf="editingNameId === col.id" class="t-rename-input"
+                  [value]="getDisplayName(col.id, 'Col ' + (ci + 1))"
+                  (blur)="confirmRename(col.id, $any($event.target).value)"
+                  (keydown.enter)="confirmRename(col.id, $any($event.target).value)" (click)="$event.stopPropagation()"
+                  autofocus>
+                <span *ngIf="editingNameId !== col.id" class="t-label" (dblclick)="startRename(col.id, $event)"
+                  title="Double-click to rename">
+                  {{ getDisplayName(col.id, 'Col ' + (ci + 1)) }}
+                </span>
+
+                <span class="t-badge col-badge">{{ col.width | number:'1.0-0' }}%</span>
+                <span class="t-badge el-count" *ngIf="col.sessions?.length">{{ col.sessions!.length }} el</span>
+              </div>
+
+              <!-- Elements — connected to ALL column drop lists for cross-column/row DnD -->
+              <div class="tree-el-list" cdkDropList [id]="'el-list-' + col.id" [cdkDropListData]="col.sessions"
+                [cdkDropListConnectedTo]="allElementDropListIds" (cdkDropListDropped)="dropElement($event)">
+
+                <div *ngFor="let el of col.sessions" cdkDrag [cdkDragData]="el" class="tree-el-node"
+                  [class.selected]="selectedSessionId === el.id"
+                  (click)="selectSession(el.id); $event.stopPropagation()">
+                  <div class="drag-handle el-drag" cdkDragHandle>⠿</div>
+                  <span class="el-type-badge">{{ el.type }}</span>
+
+                  <!-- Inline rename for element -->
+                  <input *ngIf="editingNameId === el.id" class="t-rename-input" [value]="getDisplayName(el.id, el.type)"
+                    (blur)="confirmRename(el.id, $any($event.target).value)"
+                    (keydown.enter)="confirmRename(el.id, $any($event.target).value)" (click)="$event.stopPropagation()"
+                    autofocus>
+                  <span *ngIf="editingNameId !== el.id" class="t-label truncate" (dblclick)="startRename(el.id, $event)"
+                    title="Double-click to rename">
+                    {{ getDisplayName(el.id, el.type !== 'image' && el.type !== 'items' && el.content ? ('' +
+                    el.content).slice(0,16) : el.type) }}
+                  </span>
+
+                  <button class="t-del" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
+                  <div *cdkDragPlaceholder class="layer-placeholder"></div>
+                </div>
+
+                <!-- Empty column hint -->
+                <div class="tree-el-empty" *ngIf="!col.sessions?.length" (click)="selectColumnAndAdd(col, $event)">+ add
+                  element</div>
+              </div>
+            </div>
+          </div>
+
+          <div *cdkDragPlaceholder class="layer-placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-secondary" (click)="router.navigate(['/dashboard'])">Back</button>
+      <button class="btn-primary" [disabled]="isSaving" (click)="saveDraft()">Save</button>
+    </div>
+  </aside>
+
+  <!-- MIDDLE: Canvas Area -->
+  <main class="builder-preview">
+    <header class="preview-toolbar">
+      <div class="zoom-controls">
+        <button (click)="zoomOut()" title="Zoom Out">−</button>
+        <span>{{ (zoomLevel * 100) | number:'1.0-0' }}%</span>
+        <button (click)="zoomIn()" title="Zoom In">+</button>
+        <button (click)="resetZoom()" title="Fit to Screen" style="font-size: 11px; margin-left: 5px;">Fit</button>
+      </div>
+      <div class="preview-actions">
+        <button class="btn-icon-action" (click)="undo()" [disabled]="!canUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
+        <button class="btn-icon-action" (click)="redo()" [disabled]="!canRedo" title="Redo (Ctrl+Y)">↪ Redo</button>
+        <button (click)="printInvoice()">Print / PDF</button>
+        <button class="btn-save" (click)="saveDraft()" [disabled]="isSaving">{{ isSaving ? 'Saving...' : 'Save Draft'
+          }}</button>
+        <button class="btn-close" (click)="router.navigate(['/dashboard'])">Exit</button>
+      </div>
+    </header>
+
+    <div class="preview-scroll-area" #previewScrollArea (wheel)="onWheelZoom($event)"
+      (touchstart)="onPinchStart($event)"
+      (touchmove)="onPinchMove($event)"
+      (touchend)="onPinchEnd()"
+      (click)="selectedSessionId = null; selectedColumnId = null">
+      <div class="a4-wrapper" [style.transform]="'scale(' + zoomLevel + ')'">
+        <div id="invoiceDoc" class="a4-page">
+
+          <ng-container *ngFor="let s of sessions">
+            <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: s }"></ng-container>
+          </ng-container>
+
+          <div class="empty-canvas-state animated-fade-in" *ngIf="sessions.length === 0">
+            <div class="empty-msg">
+              <svg class="empty-icon">
+                <use [attr.href]="icons.receipt"></use>
+              </svg>
+              <h2>Ready to Design?</h2>
+              <p>Add a layout row from the left panel to begin your custom invoice.</p>
+            </div>
+          </div>
+
+          <div class="watermark">Created with InvoGen Builder</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Property Inspector -->
+  <aside class="property-inspector animated-fade-in" *ngIf="selectedSession">
+    <div class="inspector-header">
+      <div class="ins-title">
+        <h3>{{ selectedSession.type | uppercase }}</h3>
+        <p>Property Controls</p>
+      </div>
+      <div class="inspector-tabs">
+        <button [class.active]="activeInspectorTab === 'content'"
+          (click)="activeInspectorTab = 'content'">Content</button>
+        <button [class.active]="activeInspectorTab === 'styles'" (click)="activeInspectorTab = 'styles'">Styles</button>
+      </div>
+    </div>
+
+    <div class="inspector-scroll-area">
+      <!-- CONTENT TAB -->
+      <div class="ins-tab-pane" *ngIf="activeInspectorTab === 'content'">
+
+        <!-- Layers / Sessions View (NEW) -->
+        <div class="ins-group" *ngIf="['layout-row', 'layout-column'].includes(selectedSession.type)">
+
+          <!-- QUICK-ADD SECTION (FOR COLUMNS) -->
+          <div class="ins-quick-add" *ngIf="selectedSession.type === 'layout-column'">
+            <label class="ins-sub-label">Add Content to Column</label>
+            <div class="ins-quick-grid">
+              <button class="q-btn" (click)="addSession('heading')" title="Add Heading"><svg>
+                  <use [attr.href]="icons.text"></use>
+                </svg><span>Heading</span></button>
+              <button class="q-btn" (click)="addSession('paragraph')" title="Add Paragraph"><svg>
+                  <use [attr.href]="icons.details"></use>
+                </svg><span>Para</span></button>
+              <button class="q-btn" (click)="addSession('image')" title="Add Image"><svg>
+                  <use [attr.href]="icons.star"></use>
+                </svg><span>Image</span></button>
+              <button class="q-btn" (click)="addSession('data-field')" title="Add Smart Field"><svg>
+                  <use [attr.href]="icons.receipt"></use>
+                </svg><span>Field</span></button>
+              <button class="q-btn" (click)="addSession('line')" title="Add Separator"><svg>
+                  <use [attr.href]="icons.save"></use>
+                </svg><span>Line</span></button>
+              <button class="q-btn" (click)="addSession('spacer')" title="Add Empty Space"><svg>
+                  <use [attr.href]="icons.details"></use>
+                </svg><span>Spacer</span></button>
+            </div>
+
+            <div class="ins-quick-grid spacing-top">
+              <button class="q-btn-wide" (click)="addSession('header')">Business Branding</button>
+              <button class="q-btn-wide" (click)="addSession('billed-to')">Client Details</button>
+              <button class="q-btn-wide" (click)="addSession('items')">Items Table</button>
+            </div>
+          </div>
+
+          <div class="ins-layers-header spacing-top">
+            <label>Elements in this Container</label>
+            <span class="ins-help">Select to edit</span>
+          </div>
+          <div class="ins-layers-list">
+            <div class="ins-layer-item" *ngFor="let child of selectedContainerSessions"
+              [class.active]="selectedSessionId === child.id" (click)="selectSession(child.id)">
+              <div class="layer-type-badge">{{ child.type }}</div>
+              <span class="layer-text truncate">{{ child.type === 'image' ? 'Image File' : (child.content || child.type)
+                }}</span>
+            </div>
+            <div class="ins-empty-layers" *ngIf="selectedContainerSessions.length === 0">
+              Empty column. Use the buttons above to add content.
+            </div>
+          </div>
+        </div>
+
+        <!-- Text Editors -->
+        <div class="ins-group" *ngIf="['heading', 'paragraph', 'note', 'custom'].includes(selectedSession.type)">
+          <label>Text Content</label>
+          <textarea [(ngModel)]="selectedSession.content" rows="6" placeholder="Enter text..."></textarea>
+        </div>
+
+        <!-- Image Editor -->
+        <div class="ins-group" *ngIf="selectedSession.type === 'image'">
+          <label>Image Resource</label>
+          <div class="img-upload-zone" *ngIf="!selectedSession.content">
+            <input type="file" (change)="onSessionImageUpload($event, selectedSession)" accept="image/*">
+            <svg class="upload-icon" style="width:24px;height:24px">
+              <use [attr.href]="icons.plus"></use>
+            </svg>
+            <span>Upload Image</span>
+          </div>
+          <div class="img-preview-pane" *ngIf="selectedSession.content">
+            <img [src]="selectedSession.content">
+            <button class="btn-img-replace" (click)="selectedSession.content = ''">Replace</button>
+          </div>
+        </div>
+
+        <!-- Smart Field Editor -->
+        <div class="ins-group" *ngIf="selectedSession.type === 'data-field'">
+          <label>Data Mapping</label>
+          <select [(ngModel)]="selectedSession.content">
+            <option value="invoiceNo">Invoice Number</option>
+            <option value="date">Invoice Date</option>
+            <option value="total">Grand Total</option>
+            <option value="clientName">Client Name</option>
+            <option value="companyName">Company Name</option>
+          </select>
+          <p class="ins-help">This field will automatically pull data from your current invoice context.</p>
+        </div>
+
+        <!-- Items Table -->
+        <div class="ins-group" *ngIf="selectedSession.type === 'items'">
+          <label>Items List</label>
+          <div class="ins-items-list">
+            <div *ngFor="let item of selectedSession.content; let i = index" class="ins-item-row">
+              <input type="text" [(ngModel)]="item.description" placeholder="Description">
+              <div class="ins-item-vals">
+                <input type="number" [(ngModel)]="item.qty" placeholder="Qty">
+                <input type="number" [(ngModel)]="item.rate" placeholder="Rate">
+                <button (click)="selectedSession.content.splice(i, 1)"
+                  *ngIf="selectedSession.content.length > 1">×</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn-ins-add" (click)="selectedSession.content.push({description:'', qty:1, rate:0})">+ Add
+            Item</button>
+        </div>
+
+        <div class="ins-footer">
+          <button class="btn-ins-delete" (click)="removeSession(selectedSession.id)">Remove Element</button>
+        </div>
+      </div>
+
+      <!-- STYLES TAB -->
+      <div class="ins-tab-pane" *ngIf="activeInspectorTab === 'styles'">
+
+        <!-- Row Configuration (Outer Layout) -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'layout-row'">
+          <label>Outer Row Layout</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Min Height (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.height">
+            </div>
+            <div class="s-field">
+              <span>Vertical Spacing</span>
+              <input type="number" [(ngModel)]="selectedSession.margin">
+            </div>
+          </div>
+          <div class="s-row spacing-top">
+            <div class="s-field">
+              <span>Row Background</span>
+              <input type="color" [(ngModel)]="selectedSession.bgColor">
+            </div>
+            <div class="s-field">
+              <span>Internal Padding</span>
+              <input type="number" [(ngModel)]="selectedSession.padding">
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Controls -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'layout-column'">
+          <label>Column Configuration</label>
+          <div class="s-field">
+            <span>Width (%)</span>
+            <input type="number" [ngModel]="selectedSession.width | number:'1.0-0'"
+              (change)="updateColumnWidth(selectedSession.id, $any($event.target).value)" min="5" max="100">
+          </div>
+
+          <label>Content Vertical Align</label>
+          <div class="toggle-group">
+            <button [class.active]="selectedSession.vAlignment === 'top'" (click)="selectedSession.vAlignment = 'top'"
+              title="Align Top">Top</button>
+            <button [class.active]="selectedSession.vAlignment === 'center'"
+              (click)="selectedSession.vAlignment = 'center'" title="Align Center">Center</button>
+            <button [class.active]="selectedSession.vAlignment === 'bottom'"
+              (click)="selectedSession.vAlignment = 'bottom'" title="Align Bottom">Bottom</button>
+          </div>
+          <label class="spacing-top">Content Horizontal Align</label>
+          <div class="toggle-group">
+            <button [class.active]="selectedSession.alignment === 'left'"
+              (click)="selectedSession.alignment = 'left'">Left</button>
+            <button [class.active]="selectedSession.alignment === 'center'"
+              (click)="selectedSession.alignment = 'center'">Center</button>
+            <button [class.active]="selectedSession.alignment === 'right'"
+              (click)="selectedSession.alignment = 'right'">Right</button>
+          </div>
+        </div>
+
+        <!-- Image Dimensions -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'image'">
+          <label>Image Dimensions</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Max Width (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.width" placeholder="Auto">
+            </div>
+            <div class="s-field">
+              <span>Max Height (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.height" placeholder="Auto">
+            </div>
+          </div>
+          <div class="s-row spacing-top">
+            <div class="s-field">
+              <span>Opacity (0-1)</span>
+              <input type="number" [(ngModel)]="selectedSession.opacity" step="0.1" min="0" max="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Typography (Text Components) -->
+        <div class="ins-section"
+          *ngIf="!['layout-row', 'layout-column', 'line', 'image', 'spacer'].includes(selectedSession.type)">
+          <label>Typography</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Size (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.fontSize">
+            </div>
+            <div class="s-field">
+              <span>Weight</span>
+              <select [(ngModel)]="selectedSession.fontWeight">
+                <option [value]="300">Light</option>
+                <option [value]="400">Regular</option>
+                <option [value]="700">Bold</option>
+                <option [value]="900">Black</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Universal Component Alignment -->
+        <div class="ins-section" *ngIf="!['layout-row', 'layout-column'].includes(selectedSession.type)">
+          <label>Content Horizontal Align</label>
+          <div class="toggle-group">
+            <button [class.active]="selectedSession.alignment === 'left'"
+              (click)="selectedSession.alignment = 'left'">Left</button>
+            <button [class.active]="selectedSession.alignment === 'center'"
+              (click)="selectedSession.alignment = 'center'">Center</button>
+            <button [class.active]="selectedSession.alignment === 'right'"
+              (click)="selectedSession.alignment = 'right'">Right</button>
+          </div>
+        </div>
+
+        <!-- Spacer Control -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'spacer'">
+          <label>Spacer Controls</label>
+          <div class="s-field">
+            <span>Height (px)</span>
+            <input type="number" [(ngModel)]="selectedSession.height" min="1">
+          </div>
+        </div>
+
+        <!-- Colors & Visuals -->
+        <div class="ins-section" *ngIf="selectedSession.type !== 'layout-row'">
+          <label>Component Appearance</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Text Color</span>
+              <input type="color" [(ngModel)]="selectedSession.textColor">
+            </div>
+            <div class="s-field">
+              <span>Background</span>
+              <input type="color" [(ngModel)]="selectedSession.bgColor">
+            </div>
+          </div>
+          <div class="s-row spacing-top">
+            <div class="s-field">
+              <span>Padding (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.padding">
+            </div>
+            <div class="s-field">
+              <span>Radius (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.borderRadius">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav">
+    <button [class.active]="mobileActiveView === 'layers'" (click)="mobileActiveView = 'layers'">
+      <svg>
+        <use [attr.href]="icons.dashboard"></use>
+      </svg>
+      <span>Layers</span>
+    </button>
+    <button [class.active]="mobileActiveView === 'canvas'" (click)="mobileActiveView = 'canvas'">
+      <svg>
+        <use [attr.href]="icons.receipt"></use>
+      </svg>
+      <span>Canvas</span>
+    </button>
+    <button [class.active]="mobileActiveView === 'properties'" (click)="mobileActiveView = 'properties'"
+      [disabled]="!selectedSessionId">
+      <svg>
+        <use [attr.href]="icons.settings"></use>
+      </svg>
+      <span>Properties</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- RECURSIVE RENDERER -->
+<ng-template #sessionRenderer let-s>
+  <!-- Layout Row -->
+  <div class="grid-row-container" *ngIf="s.type === 'layout-row'" [style.min-height.px]="s.height"
+    [style.background-color]="s.bgColor" [style.margin-top.px]="s.margin" [style.margin-bottom.px]="s.margin"
+    [style.padding.px]="s.padding" [class.selected]="selectedSessionId === s.id"
+    (click)="selectSession(s.id); $event.stopPropagation()">
+
+    <div class="grid-columns-wrapper">
+      <div class="grid-column" *ngFor="let col of s.sessions" [style.width.%]="col.width"
+        [style.background-color]="col.bgColor"
+        [style.justify-content]="col.vAlignment === 'center' ? 'center' : (col.vAlignment === 'bottom' ? 'flex-end' : 'flex-start')"
+        [style.align-items]="col.alignment === 'center' ? 'center' : (col.alignment === 'right' ? 'flex-end' : 'flex-start')"
+        [class.selected]="selectedColumnId === col.id" (click)="selectColumn(col.id); $event.stopPropagation()">
+
+        <ng-container *ngFor="let sub of col.sessions">
+          <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: sub }"></ng-container>
+        </ng-container>
+
+        <div class="column-add-btn" *ngIf="col.sessions.length === 0" (click)="selectColumnAndAdd(col, $event)"
+          title="Click to add content here">
+          <span>+</span>
+          <small>Add Content</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component Wrapper -->
+  <div class="component-wrapper" *ngIf="s.type !== 'layout-row' && s.type !== 'layout-column'"
+    [class.selected]="selectedSessionId === s.id" [style.text-align]="s.alignment" [style.color]="s.textColor"
+    [style.background-color]="s.bgColor" [style.padding.px]="s.padding" [style.margin-top.px]="s.margin"
+    [style.margin-bottom.px]="s.margin" [style.font-size.px]="s.fontSize" [style.font-weight]="s.fontWeight"
+    (click)="selectSession(s.id); $event.stopPropagation()">
+
+    <!-- Heading -->
+    <h1 *ngIf="s.type === 'heading'" [style.margin]="0">{{ s.content }}</h1>
+
+    <!-- Paragraph -->
+    <p *ngIf="s.type === 'paragraph'" [style.margin]="0" style="white-space: pre-wrap;">{{ s.content }}</p>
+
+    <!-- Empty Spacer -->
+    <div *ngIf="s.type === 'spacer'" class="canvas-spacer" [style.height.px]="s.height || 20"></div>
+
+    <!-- Image -->
+    <div *ngIf="s.type === 'image'" class="canvas-image-container">
+      <img *ngIf="s.content" [src]="s.content" [style.border-radius.px]="s.borderRadius"
+        [style.max-width.px]="s.width || null" [style.max-height.px]="s.height || null"
+        [style.opacity]="s.opacity != null ? s.opacity : 1" style="object-fit: contain; width: 100%;">
+      <div *ngIf="!s.content" class="img-placeholder" [style.max-width.px]="s.width" [style.max-height.px]="s.height">
+        Empty Image</div>
+    </div>
+
+    <!-- Data Field -->
+    <div *ngIf="s.type === 'data-field'" class="canvas-data-field">
+      {{ getDataFieldValue(s.content) }}
+    </div>
+
+    <!-- Separator -->
+    <div class="canvas-line" *ngIf="s.type === 'line'" [style.border-bottom-color]="theme.primaryColor"></div>
+
+    <!-- Branding Module -->
+    <header class="inv-header" *ngIf="s.type === 'header'">
+      <div class="brand-side">
+        <div class="logo-box" *ngIf="s.content.customLogo || currentUser?.companyLogoUrl">
+          <img [src]="s.content.customLogo || currentUser?.companyLogoUrl" [style.max-height.px]="s.content.logoSize">
+        </div>
+        <div *ngIf="findSessionRecursive(sessions, 'billed-to') as bt">
+          <h1 class="brand-name">{{ bt.content.fromName || currentUser?.companyName }}</h1>
+          <p class="brand-address">{{ bt.content.fromAddress || currentUser?.companyAddress }}</p>
+        </div>
+      </div>
+      <div class="title-side">
+        <h2 class="doc-label" [style.color]="theme.primaryColor">INVOICE</h2>
+        <div class="meta-grid">
+          <div class="meta-item"><span>Number:</span> <strong>{{ invoiceNo }}</strong></div>
+          <div class="meta-item"><span>Date:</span> <strong>{{ invoiceDate }}</strong></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Parties Module -->
+    <div class="bill-to-section" *ngIf="s.type === 'billed-to'">
+      <h4 [style.color]="theme.primaryColor">BILLED TO</h4>
+      <div class="client-info">
+        <p class="c-name">{{ s.content.name || 'Customer Name' }}</p>
+        <p class="c-address">{{ s.content.address || 'Address' }}</p>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div *ngIf="s.type === 'items'" class="items-table-view">
+      <table>
+        <thead [style.background]="theme.primaryColor + '10'">
+          <tr>
+            <th>Description</th>
+            <th class="text-center">Qty</th>
+            <th class="text-right">Price</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of s.content">
+            <td>{{ item.description || '—' }}</td>
+            <td class="text-center">{{ item.qty }}</td>
+            <td class="text-right">{{ theme.currency?.symbol }}{{ item.rate | number:'1.2-2' }}</td>
+            <td class="text-right">{{ theme.currency?.symbol }}{{ (item.qty * item.rate) | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary Box -->
+    <div class="totals-summary" *ngIf="s.type === 'tax'">
+      <div class="sum-row">
+        <span>Subtotal</span>
+        <span>{{ theme.currency?.symbol }}{{ subtotal | number:'1.2-2' }}</span>
+      </div>
+      <div class="sum-row" *ngIf="taxRate > 0">
+        <span>Tax ({{ taxRate }}%)</span>
+        <span>{{ theme.currency?.symbol }}{{ taxAmount | number:'1.2-2' }}</span>
+      </div>
+      <div class="total-row" [style.background]="theme.primaryColor">
+        <span>Total Amount</span>
+        <strong>{{ theme.currency?.symbol }}{{ grandTotal | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes-view" *ngIf="s.type === 'note'">
+      <h4 [style.color]="theme.primaryColor">Notes</h4>
+      <p>{{ s.content }}</p>
+    </div>
+
+  </div>
+</ng-template>

@@ -1,0 +1,277 @@
+/* ── Login page wrapper ─────────────────────────────────────── */
+.login-container {
+  min-height: 100vh;
+  width: 100vw;
+  background-color: var(--login-bg);
+  background-image: var(--login-overlay),
+    url('/assets/background/loginbackground.jpg');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  /* ← vertical breathing room */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+
+  @media (max-width: 600px) {
+    padding: 24px 12px;
+  }
+}
+
+/* ── Floating theme toggle (top-right) ─────────────────────── */
+.login-theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: var(--toggle-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+  z-index: 2000;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+
+  &:hover {
+    background: var(--toggle-surface-hover);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 600px) {
+    top: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.login-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--card-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 36px 32px 32px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+
+  @media (max-width: 600px) {
+    padding: 24px 20px 20px;
+    width: 100%;
+    margin-top: 40px; /* space for the absolute theme toggle */
+  }
+
+  /* Logo */
+  .logo-area {
+    display: flex;
+    justify-content: center;
+    // margin-bottom: 20px;
+
+    .login-logo {
+      width: 200px;
+      height: auto;
+      // max-height: 72px;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 3px 10px rgba(124, 58, 237, 0.2));
+      transition: opacity 0.3s ease;
+
+      @media (max-width: 600px) {
+        width: 160px;
+      }
+    }
+  }
+
+  /* Heading block */
+  .heading-area {
+    text-align: center;
+    margin-bottom: 24px;
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+
+      @media (max-width: 600px) {
+        font-size: 20px;
+      }
+    }
+
+    .subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+  }
+
+  /* Form toggle links */
+  .auth-toggle {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+
+    a {
+      color: var(--accent-color);
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .forgot-row {
+      margin-top: 10px;
+      font-size: 12.5px;
+    }
+  }
+}
+
+/* ── Form elements ─────────────────────────────────────────── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      padding: 11px 14px;
+      border-radius: 8px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+
+      /* Placeholder always uses muted color */
+      &::placeholder {
+        color: var(--text-muted);
+        opacity: 0.7;
+      }
+
+      &:focus {
+        border-color: var(--input-focus-border);
+        box-shadow: 0 0 0 3px var(--input-focus-shadow);
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    button {
+      width: 100%;
+      padding: 13px;
+      border-radius: 8px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    /* Google button: fully theme-aware, no hardcoded rgba whites */
+    .btn-google {
+      background: var(--google-btn-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+
+      &:hover {
+        background: var(--google-btn-hover);
+        border-color: var(--accent-color);
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  /* OR divider — theme-aware, no hardcoded rgba whites */
+  .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin: 0;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    span {
+      padding: 0 12px;
+    }
+  }
+}

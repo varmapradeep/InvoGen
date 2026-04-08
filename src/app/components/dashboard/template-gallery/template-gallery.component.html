@@ -1,0 +1,40 @@
+<div class="gallery-container">
+  <div class="gallery-header">
+    <div class="h-text">
+       <h1>Professional Designs</h1>
+       <p>Select a master template curated by our design team to start your invoice with an elite look.</p>
+    </div>
+    <button class="btn-back" (click)="router.navigate(['/dashboard'])">
+       <svg><use [attr.href]="icons.arrowLeft"></use></svg> Back to Dashboard
+    </button>
+  </div>
+
+  <div class="gallery-grid">
+    <div *ngFor="let t of masterTemplates" class="template-card animated-up">
+      <div class="card-preview" [style.border-top-color]="t.fullData.theme.primaryColor">
+        <div class="preview-mockup">
+           <div class="mock-header" [style.background]="t.fullData.theme.primaryColor + '10'"></div>
+           <div class="mock-line short"></div>
+           <div class="mock-line"></div>
+           <div class="mock-table">
+              <div class="h"></div><div class="r"></div><div class="r"></div>
+           </div>
+        </div>
+        <div class="overlay">
+           <button class="btn-use" (click)="useTemplate(t)">Use This Design</button>
+        </div>
+      </div>
+      <div class="card-info">
+        <h3>{{ t.name }}</h3>
+        <span class="badge">{{ t.fullData.theme.fontFamily }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-footer">
+    <div class="box">
+      <svg><use [attr.href]="icons.info"></use></svg>
+      <p>All designs are fully customizable. You can reorder sections, change colors, and swap fonts once you enter the builder.</p>
+    </div>
+  </div>
+</div>

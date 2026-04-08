@@ -1,0 +1,133 @@
+<div class="page-container">
+  
+  <div class="dashboard-page-header animated-fade-in">
+    <div class="header-content">
+      <div class="icon-circle">
+        <svg class="header-icon"><use [attr.href]="icons.file"></use></svg>
+      </div>
+      <h2>My Documents</h2>
+    </div>
+  </div>
+
+  <div class="dashboard-controls">
+    <div class="controls-left">
+      <h3 class="section-title">All Invoices</h3>
+      <p class="section-subtitle">Manage and track your document history</p>
+    </div>
+    
+    <div class="header-actions">
+      <div class="view-toggle">
+        <button [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">
+          <svg class="nav-icon" style="width:14px;height:14px"><use [attr.href]="icons.grid"></use></svg>
+        </button>
+        <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">
+          <svg class="nav-icon" style="width:14px;height:14px"><use [attr.href]="icons.list"></use></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-state animated-fade-in" *ngIf="loading">
+     <div class="spinner"></div>
+     <p>Retrieving your documents...</p>
+  </div>
+
+  <!-- High-Density Grid View -->
+  <div class="grid-container" *ngIf="!loading && viewMode === 'grid'">
+    <!-- Create Link Card -->
+    <div class="action-card" [routerLink]="['/editor']" *ngIf="currentPage === 1">
+      <div class="dashed-border">
+        <div class="plus-box">
+           <svg class="p-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+        </div>
+        <span class="card-label">Create new invoice</span>
+      </div>
+    </div>
+
+    <!-- Invoice Card -->
+    <div class="invoice-card animated-up" *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+      <div class="preview-skeleton">
+        <div class="s-badge">{{ inv.invoiceNo }}</div>
+        <div class="s-lines">
+          <div class="s-line full"></div>
+          <div class="s-line full"></div>
+          <div class="s-line half"></div>
+          <div class="s-line half"></div>
+        </div>
+      </div>
+      <div class="card-footer-info">
+        <div class="footer-row-top">
+          <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
+          <div class="card-actions-overlay">
+            <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+              <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.edit"></use></svg>
+              <span>Edit</span>
+            </button>
+            <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+              <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.delete"></use></svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+        <div class="footer-row-bottom">
+          <span class="date">{{ inv.dateCreated }}</span>
+          <span class="total">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- List View -->
+  <div class="list-container" *ngIf="!loading && viewMode === 'list'">
+    <div class="card table-card">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th (click)="setSort('invoiceNo')">Inv #</th>
+              <th (click)="setSort('customerName')">Customer</th>
+              <th (click)="setSort('dateCreated')">Date</th>
+              <th (click)="setSort('totalAmount')" class="text-right">Amount</th>
+              <th class="text-right">Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+              <td><span class="inv-badge">{{ inv.invoiceNo }}</span></td>
+              <td><strong>{{ inv.customerName }}</strong></td>
+              <td>{{ inv.dateCreated }}</td>
+              <td class="text-right">Rs. {{ inv.totalAmount | number:'1.2-2' }}</td>
+              <td class="text-right">
+                <div class="table-actions">
+                  <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+                    <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.edit"></use></svg>
+                    <span>Edit</span>
+                  </button>
+                  <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+                    <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.delete"></use></svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state animated-fade-in" *ngIf="!loading && invoices.length === 0">
+     <div class="empty-icon"><svg style="width:48px;height:48px;opacity:0.2"><use [attr.href]="icons.file"></use></svg></div>
+     <h3>No invoices found</h3>
+     <p>You haven't created any invoices yet.</p>
+     <button class="btn-primary" [routerLink]="['/editor']">Create your first invoice</button>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="!loading && totalPages > 1">
+     <button class="btn-page" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">Previous</button>
+     <div class="page-info">Page {{ currentPage }} of {{ totalPages }}</div>
+     <button class="btn-page" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Next</button>
+  </div>
+
+</div>

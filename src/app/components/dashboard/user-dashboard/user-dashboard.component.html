@@ -1,0 +1,68 @@
+<div class="page-container">
+
+  <!-- Page Header: Your Workspace -->
+  <div class="dashboard-page-header animated-fade-in">
+    <div class="header-content">
+      <div class="icon-circle">
+        <svg class="header-icon"><use [attr.href]="icons.grid"></use></svg>
+      </div>
+      <h2>Your Workspace</h2>
+    </div>
+  </div>
+
+  <!-- Stats Grid (Personal Metrics) -->
+  <div class="widgets-grid animated-fade-in">
+    <div class="widget-card gradient-primary">
+       <div class="card-glow"></div>
+       <div class="widget-info">
+          <span class="w-label">Total Volume</span>
+          <h2 class="w-value">Rs. {{ totalRevenue | number:'1.2-2' }}</h2>
+       </div>
+       <div class="w-icon-bg"><svg><use [attr.href]="icons.grid"></use></svg></div>
+    </div>
+    
+    <div class="widget-card glass">
+       <div class="widget-info">
+          <span class="w-label">Invoices Issued</span>
+          <h2 class="w-value">{{ invoiceCount }}</h2>
+       </div>
+       <div class="w-icon-bg"><svg><use [attr.href]="icons.file"></use></svg></div>
+    </div>
+  </div>
+
+  <div class="templates-section animated-fade-in">
+    <div class="section-header">
+      <div class="h-text">
+        <h3 class="section-title">Recommended Templates</h3>
+        <p class="section-subtitle">Select a professional layout to start your next invoice</p>
+      </div>
+      <button class="btn-gallery" (click)="router.navigate(['/designs'])">
+        Explore Designs <svg><use [attr.href]="icons.arrowLeft"></use></svg>
+      </button>
+    </div>
+    
+    <div class="templates-scroll-container">
+      <div class="template-card" *ngFor="let t of templates" (click)="useTemplate(t.id)">
+        <div class="template-preview">
+           <div class="preview-mini-content">
+             <div class="line long"></div>
+             <div class="line med"></div>
+             <div class="line short"></div>
+             <div class="table-skeleton">
+               <div class="t-row"></div>
+               <div class="t-row"></div>
+             </div>
+           </div>
+           <div class="use-overlay">
+             <svg class="nav-icon"><use [attr.href]="icons.plus"></use></svg>
+             <span>Use This</span>
+           </div>
+        </div>
+        <div class="template-info">
+          <span class="template-name">{{ t.name }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

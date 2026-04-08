@@ -1,0 +1,107 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-content">
+      <svg class="nav-icon" style="width:24px;height:24px"><use [attr.href]="icons.user"></use></svg>
+      <h2>My Account & Security</h2>
+    </div>
+  </div>
+
+  <div class="profile-grid">
+    <!-- Section 1: Identity & Invoicing -->
+    <div class="card profile-card">
+      <div class="card-header">
+        <h3>Invoicing Identity</h3>
+        <p class="subtitle">These details identify you and appear on your invoices.</p>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label>Display Name</label>
+          <input type="text" [(ngModel)]="profileForm.name" placeholder="Full name">
+        </div>
+        <div class="form-group flex-1">
+          <label>Email (System)</label>
+          <input type="email" [value]="currentUser?.email" disabled class="disabled-input">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Business / Company Name</label>
+        <input type="text" [(ngModel)]="profileForm.companyName" placeholder="e.g. Acme Corp (Optional)">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="text" [(ngModel)]="profileForm.phone" placeholder="+1 (555) 000-0000">
+        </div>
+        <div class="form-group">
+          <label>Website</label>
+          <input type="text" [(ngModel)]="profileForm.website" placeholder="www.yourcompany.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tax ID / VAT Registration</label>
+        <input type="text" [(ngModel)]="profileForm.taxId" placeholder="e.g. VAT-123456">
+      </div>
+
+      <div class="form-group">
+        <label>Business Address</label>
+        <textarea rows="3" [(ngModel)]="profileForm.companyAddress" placeholder="Full address for invoice header"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Business Logo</label>
+        <div class="logo-uploader-mini">
+          <div class="logo-preview-box" *ngIf="profileForm.companyLogoUrl">
+            <img [src]="profileForm.companyLogoUrl" alt="Logo">
+          </div>
+          <div class="upload-zone">
+            <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display:none">
+            <button class="btn-outline-sm" (click)="fileInput.click()" [disabled]="uploading">
+              {{ uploading ? 'Uploading...' : 'Update Logo' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-save" [disabled]="loading" (click)="saveProfile()">
+          <svg class="act-i" *ngIf="!loading" style="width:14px;height:14px;margin-right:8px"><use [attr.href]="icons.save"></use></svg>
+          {{ loading ? 'Saving...' : 'Save All Details' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 2: Security -->
+    <div class="card security-card">
+      <div class="card-header">
+        <h3>Account Security</h3>
+        <p class="subtitle">Secure your workspace by updating your password.</p>
+      </div>
+      
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" [(ngModel)]="passwordForm.newPassword" placeholder="Minimum 6 characters">
+      </div>
+      
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" [(ngModel)]="passwordForm.confirmPassword" placeholder="Repeat password">
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn-save security" [disabled]="passwordLoading" (click)="changePassword()">
+          <svg class="act-i" *ngIf="!passwordLoading" style="width:14px;height:14px;margin-right:8px"><use [attr.href]="icons.save"></use></svg>
+          {{ passwordLoading ? 'Updating...' : 'Update Password' }}
+        </button>
+      </div>
+
+      <div class="security-note">
+        <svg style="width:16px;height:16px;color:var(--text-muted)"><use [attr.href]="icons.settings"></use></svg>
+        <span>Password changes require a recent user session.</span>
+      </div>
+    </div>
+  </div>
+</div>

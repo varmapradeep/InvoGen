@@ -1,0 +1,177 @@
+/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ─── DARK THEME (default) ─────────────────────────────────────── */
+:root {
+  --bg-dark: #121212;
+  --bg-sidebar: #1a1a1a;
+  --bg-card: #242424;
+  --bg-card-hover: #2a2a2a;
+
+  --text-main: #ededed;
+  --text-muted: #a0a0a0;
+
+  --border-color: #2e2e2e;
+  --accent-color: #7645c0;
+
+  --sidebar-width: 250px;
+
+  --nav-hover-bg: rgba(255, 255, 255, 0.05);
+  --nav-active-bg: rgba(167, 139, 250, 0.15);
+  --nav-active-text: #7645c0 --avatar-bg: #2e2e2e;
+
+  --theme-toggle-bg: rgba(255, 255, 255, 0.06);
+  --theme-toggle-hover-bg: rgba(255, 255, 255, 0.10);
+
+  /* Input / form */
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-focus-border: #7645c0 --input-focus-shadow: rgba(167, 139, 250, 0.2);
+
+  /* Login page */
+  --login-bg: #0f0f0f;
+  --login-overlay: linear-gradient(rgb(56 60 81 / 82%), rgba(10, 10, 10, 0.88));
+  --card-surface: rgba(24, 24, 32, 0.90);
+  --toggle-surface: rgba(255, 255, 255, 0.08);
+  --toggle-surface-hover: rgba(255, 255, 255, 0.14);
+  --google-btn-bg: rgba(255, 255, 255, 0.06);
+  --google-btn-hover: rgba(255, 255, 255, 0.10);
+}
+
+/* ─── LIGHT THEME ───────────────────────────────────────────────── */
+[data-theme='light'] {
+  --bg-dark: #f0f2f5;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f9fb;
+
+  --text-main: #111827;
+  --text-muted: #6b7280;
+
+  --border-color: #e5e7eb;
+  --accent-color: #7c3aed;
+
+  --nav-hover-bg: rgba(124, 58, 237, 0.06);
+  --nav-active-bg: rgba(124, 58, 237, 0.1);
+  --nav-active-text: #7c3aed;
+
+  --avatar-bg: #ede9fe;
+
+  --theme-toggle-bg: rgba(0, 0, 0, 0.06);
+  --theme-toggle-hover-bg: rgba(0, 0, 0, 0.10);
+
+  /* Input / form */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-border: #7c3aed;
+  --input-focus-shadow: rgba(124, 58, 237, 0.15);
+
+  /* Login page */
+  --login-bg: #f0f2f5;
+
+  // --login-overlay: linear-gradient(rgba(240, 242, 245, 0.88), rgba(240, 242, 245, 0.92));
+  --login-overlay: linear-gradient(rgb(106 119 139 / 88%), rgb(168 180 198 / 92%));
+  --card-surface: rgba(255, 255, 255, 0.95);
+  --toggle-surface: rgba(0, 0, 0, 0.06);
+  --toggle-surface-hover: rgba(0, 0, 0, 0.10);
+  --google-btn-bg: #f9fafb;
+  --google-btn-hover: #f3f4f6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Global Icon Fix for Light Mode visibility */
+svg {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0; /* Only apply stroke where needed */
+}
+
+.act-i, .nav-icon, .tab-icon, .search-icon, .chevron-i {
+  fill: currentColor;
+  display: block;
+}
+
+/* ─── Password Toggle Utilities ────────────────── */
+.password-wrapper {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+
+  input {
+    padding-right: 48px !important;
+    width: 100%;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    
+    &:hover {
+      color: var(--accent-color);
+      background: var(--nav-hover-bg);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    svg {
+      pointer-events: none;
+      fill: none !important;
+      stroke: currentColor !important;
+      stroke-width: 2 !important;
+    }
+  }
+}

@@ -1,0 +1,226 @@
+<div class="page-container">
+
+  <!-- Page Header: User Dashboard -->
+  <div class="dashboard-page-header animated-fade-in">
+    <div class="header-content">
+      <div class="icon-circle">
+        <svg class="header-icon"><use [attr.href]="icons.grid"></use></svg>
+      </div>
+      <h2>{{ currentUser?.role === 'ADMIN' ? 'User Dashboard' : 'Your Workspace' }}</h2>
+    </div>
+  </div>
+
+  <!-- Widgets Section (Admin Only Metrics) -->
+  <div class="widgets-grid animated-fade-in" *ngIf="currentUser?.role === 'ADMIN'">
+    <div class="widget-card gradient-primary">
+       <div class="card-glow"></div>
+       <div class="widget-info">
+          <span class="w-label">Total Revenue</span>
+          <h2 class="w-value">Rs. {{ totalRevenue | number:'1.2-2' }}</h2>
+       </div>
+       <div class="w-icon-bg"><svg><use [attr.href]="icons.grid"></use></svg></div>
+    </div>
+    
+    <div class="widget-card glass">
+       <div class="widget-info">
+          <span class="w-label">Documents Issued</span>
+          <h2 class="w-value">{{ invoiceCount }}</h2>
+       </div>
+       <div class="w-icon-bg"><svg><use [attr.href]="icons.file"></use></svg></div>
+    </div>
+
+    <div class="widget-card glass">
+       <div class="widget-info">
+          <span class="w-label">Average Value</span>
+          <h2 class="w-value">Rs. {{ averageValue | number:'1.0-0' }}</h2>
+       </div>
+       <div class="w-icon-bg"><svg><use [attr.href]="icons.sun"></use></svg></div>
+    </div>
+  </div>
+
+  <!-- Tab Switcher (Filtered by Role) -->
+  <div class="dashboard-tabs">
+    <button *ngIf="currentUser?.role === 'ADMIN'" [class.active]="activeTab === 'documents'" (click)="activeTab = 'documents'">
+      <svg class="tab-icon"><use [attr.href]="icons.file"></use></svg>
+      Documents
+    </button>
+    <button [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">
+      <svg class="tab-icon"><use [attr.href]="icons.settings"></use></svg>
+      Settings & Profile
+    </button>
+  </div>
+
+  <!-- DOCUMENTS TAB CONTENT (Admin Only) -->
+  <div class="tab-content" *ngIf="activeTab === 'documents' && currentUser?.role === 'ADMIN'">
+    <div class="dashboard-controls">
+      <div class="controls-left">
+        <h3 class="section-title">Your Documents</h3>
+      </div>
+      
+      <div class="header-actions">
+        <button class="btn-create-header" (click)="createNew()">
+          <svg style="width:14px;height:14px;margin-right:6px"><use [attr.href]="icons.plus"></use></svg>
+          New Invoice
+        </button>
+  
+        <div class="view-toggle">
+          <button [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">
+            <svg class="nav-icon" style="width:14px;height:14px"><use [attr.href]="icons.grid"></use></svg>
+          </button>
+          <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'">
+            <svg class="nav-icon" style="width:14px;height:14px"><use [attr.href]="icons.list"></use></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  
+    <!-- High-Density Grid View -->
+    <div class="grid-container" *ngIf="viewMode === 'grid'">
+      <div class="action-card" (click)="createNew()" *ngIf="currentPage === 1">
+        <div class="dashed-border">
+          <div class="plus-box">
+             <svg class="p-svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          </div>
+          <span class="card-label">Create a new invoice</span>
+        </div>
+      </div>
+  
+      <div class="invoice-card animated-up" *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+        <div class="preview-skeleton">
+          <div class="s-badge">{{ inv.invoiceNo }}</div>
+          <div class="s-lines">
+            <div class="s-line full"></div>
+            <div class="s-line full"></div>
+            <div class="s-line half"></div>
+            <div class="s-line half"></div>
+          </div>
+        </div>
+        <div class="card-footer-info">
+          <div class="footer-row-top">
+            <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
+            <div class="card-actions-overlay">
+              <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+                <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.edit"></use></svg>
+              </button>
+              <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+                <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.delete"></use></svg>
+              </button>
+            </div>
+          </div>
+          <div class="footer-row-bottom">
+            <span class="date">{{ inv.dateCreated }}</span>
+            <span class="total">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- List View -->
+    <div class="list-container" *ngIf="viewMode === 'list'">
+      <div class="card table-card">
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th (click)="setSort('invoiceNo')">Inv #</th>
+                <th (click)="setSort('customerName')">Customer</th>
+                <th (click)="setSort('dateCreated')">Date</th>
+                <th (click)="setSort('totalAmount')" class="text-right">Amount</th>
+                <th class="text-right">Operations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+                <td><span class="inv-badge">{{ inv.invoiceNo }}</span></td>
+                <td><strong>{{ inv.customerName }}</strong></td>
+                <td>{{ inv.dateCreated }}</td>
+                <td class="text-right">Rs. {{ inv.totalAmount | number:'1.2-2' }}</td>
+                <td class="text-right">
+                  <div class="table-actions">
+                    <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+                      <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.edit"></use></svg>
+                    </button>
+                    <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+                      <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.delete"></use></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+       <button class="btn-page" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">Previous</button>
+       <div class="page-info">Page {{ currentPage }} of {{ totalPages }}</div>
+       <button class="btn-page" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Next</button>
+    </div>
+  </div>
+
+  <!-- PROFILE TAB CONTENT (Public for all roles) -->
+  <div class="tab-content" *ngIf="activeTab === 'profile'">
+    <div class="profile-header-integrated">
+       <svg class="header-icon"><use [attr.href]="icons.settings"></use></svg>
+       <h2>Invoice settings & Profile</h2>
+    </div>
+
+    <div class="profile-grid-integrated">
+      <div class="integrated-card glass">
+        <div class="i-card-header">
+           <h3>User account details</h3>
+           <p>Update your personal information used in the application.</p>
+        </div>
+        <div class="i-form-group">
+          <label>Full Name</label>
+          <input type="text" [(ngModel)]="profileForm.name" placeholder="Enter your full name">
+        </div>
+        <div class="i-form-group">
+          <label>Email Address</label>
+          <input type="email" [value]="currentUser?.email" disabled class="disabled-input">
+        </div>
+        <div class="i-form-actions">
+          <button class="btn-primary-integrated" (click)="saveProfile()" [disabled]="loading">
+            {{ loading ? 'Saving...' : 'Update Account Info' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="integrated-card glass">
+        <div class="i-card-header">
+           <h3>Invoice branding</h3>
+           <p>These details will appear on all your generated invoices.</p>
+        </div>
+        <div class="i-form-group">
+          <label>Business Name</label>
+          <input type="text" [(ngModel)]="profileForm.companyName" placeholder="e.g. Acme Corp.">
+        </div>
+        <div class="i-form-group">
+          <label>Business Address</label>
+          <textarea rows="3" [(ngModel)]="profileForm.companyAddress" placeholder="Enter your business address"></textarea>
+        </div>
+        
+        <div class="logo-section">
+          <div class="logo-preview-box" *ngIf="profileForm.companyLogoUrl">
+            <img [src]="profileForm.companyLogoUrl" alt="Business Logo">
+          </div>
+          <div class="upload-controls">
+            <input type="file" #integratedLogoInput (change)="onFileSelected($event)" accept="image/*" style="display:none">
+            <button class="btn-upload-integrated" (click)="integratedLogoInput.click()" [disabled]="uploading">
+              {{ uploading ? 'Uploading...' : 'Choose Logo' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="i-form-actions">
+          <button class="btn-primary-integrated" (click)="saveProfile()" [disabled]="loading">
+             {{ loading ? 'Saving...' : 'Save Branding Settings' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
