@@ -1,4 +1,3 @@
 git add .
-git commit -m "Fix asset paths and sync source to InvoGen"
-git pull origin main --allow-unrelated-histories --no-edit
+git commit -m "Resolve merge conflict and sync source to InvoGen"
 git push origin main
