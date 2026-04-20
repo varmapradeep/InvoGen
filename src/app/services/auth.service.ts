@@ -128,19 +128,15 @@ export class AuthService {
   public async loginWithGoogle(): Promise<boolean> {
     try {
       const provider = new GoogleAuthProvider();
-      // Simple mobile detection
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-      if (isMobile) {
+      await signInWithPopup(this.auth, provider);
+      localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
+      return true;
+    } catch (e: any) {
+      if (e?.code === 'auth/popup-blocked') {
+        // Fallback for browsers that block popups
         await signInWithRedirect(this.auth, provider);
-        // Page will redirect and logic continues after reload in the constructor
-        return true;
-      } else {
-        await signInWithPopup(this.auth, provider);
-        localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
         return true;
       }
-    } catch (e) {
       console.error('Google Login failed', e);
       return false;
     }
@@ -261,3 +257,4 @@ export class AuthService {
     await reauthenticateWithCredential(user, credential);
   }
 }
+

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -8,6 +8,7 @@ import { ToastService } from '../../services/toast.service';
 import { ToastComponent } from '../toast/toast.component';
 import { ThemeService, Theme } from '../../services/theme.service';
 import { ToasterMessages } from '../../utils/messages.util';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -16,7 +17,7 @@ import { ToasterMessages } from '../../utils/messages.util';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   icons = Icons;
   viewMode: 'login' | 'signup' | 'forgot' = 'login';
   email = '';
@@ -25,6 +26,7 @@ export class LoginComponent {
   name = '';
   loading = false;
   currentTheme: Theme = 'dark';
+  private userSub?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -32,11 +34,26 @@ export class LoginComponent {
     private toast: ToastService,
     public themeService: ThemeService
   ) {
-    if (this.authService.currentUserValue) {
-      const dest = this.authService.currentUserValue.role === 'ADMIN' ? '/admin' : '/dashboard';
-      this.router.navigate([dest], { replaceUrl: true });
-    }
     this.themeService.theme$.subscribe(t => this.currentTheme = t);
+  }
+
+  ngOnInit() {
+    // Handles navigation for: cached sessions, popup sign-in, and redirect sign-in after page reload
+    this.userSub = this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        if (user.status === 'PENDING') {
+          this.toast.warning(ToasterMessages.auth.pendingApproval);
+          return;
+        }
+        this.toast.success(ToasterMessages.auth.welcomeBack(user.name));
+        const dest = user.role === 'ADMIN' ? '/admin' : '/dashboard';
+        this.router.navigate([dest], { replaceUrl: true });
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.userSub?.unsubscribe();
   }
 
   setViewMode(mode: 'login' | 'signup' | 'forgot') {
@@ -60,45 +77,21 @@ export class LoginComponent {
     }
     this.loading = true;
     const success = await this.authService.login(this.email, this.password);
-    this.loading = false;
-    
-    if (success) {
-      const user = this.authService.currentUserValue;
-      if (user) {
-        if (user.status === 'PENDING') {
-          this.toast.warning(ToasterMessages.auth.pendingApproval);
-          return;
-        }
-        this.toast.success(ToasterMessages.auth.welcomeBack(user.name));
-        const dest = user.role === 'ADMIN' ? '/admin' : '/dashboard';
-        this.router.navigate([dest], { replaceUrl: true });
-      }
-    } else {
+    if (!success) {
+      this.loading = false;
       this.toast.error(ToasterMessages.auth.loginFailed);
     }
+    // Navigation handled by currentUser$ subscription
   }
 
   async loginWithGoogle() {
     this.loading = true;
     const success = await this.authService.loginWithGoogle();
-    
-    // Note: for mobile redirect, the page will reload and constructor will handle it if still same URL
-    // But for popup, we can handle it here
-    if (success) {
-      const user = this.authService.currentUserValue;
-      if (user) {
-         if (user.status === 'PENDING') {
-          this.toast.warning(ToasterMessages.auth.pendingApproval);
-          return;
-        }
-        this.toast.success(ToasterMessages.auth.welcomeBack(user.name));
-        const dest = user.role === 'ADMIN' ? '/admin' : '/dashboard';
-        this.router.navigate([dest]);
-      }
-    } else {
+    if (!success) {
       this.loading = false;
       this.toast.error(ToasterMessages.auth.googleLoginFailed);
     }
+    // Navigation handled by currentUser$ subscription
   }
 
   async signUp() {
@@ -135,3 +128,4 @@ export class LoginComponent {
     }
   }
 }
+
