@@ -9,6 +9,7 @@ export const Icons = {
   user:      `#icon-users`,
   logout:    `#icon-logout`,
   governance: `#icon-shield`,
+  shield:    `#icon-shield`,
 
   // Theme toggle
   sun:       `#icon-sun`,
@@ -47,4 +48,8 @@ export const Icons = {
   details:   `#icon-info`,
   star:      `#icon-dashboard`,
   receipt:   `#icon-file`,
+  award:     `#icon-award`,
+  globe:     `#icon-globe`,
+  currency:  `#icon-globe`,
+  lock:      `#icon-lock`,
 };

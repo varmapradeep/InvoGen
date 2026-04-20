@@ -1,0 +1,105 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-content">
+      <svg class="header-icon">
+        <use [attr.href]="icons.settings"></use>
+      </svg>
+      <h2>Global Configurations</h2>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" [disabled]="loading" (click)='saveSettings()'>
+        <svg class="act-i" *ngIf="!loading" style="width:14px;height:14px;margin-right:8px">
+          <use [attr.href]="icons.save"></use>
+        </svg>
+        {{ loading ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="settings-grid">
+    <div class="card settings-card">
+      <div class="settings-section">
+        <!-- Section 1: Invoice Numbering -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Custom Invoice Numbering</span>
+            <span class="setting-desc">Enable auto-incrementing invoice numbers using your specified format.</span>
+          </div>
+          <label class="premium-switch">
+            <input type="checkbox" [(ngModel)]="settingsForm.invoiceSettings.useCustomFormat">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <!-- Detail Expansion -->
+        <div class="expansion-area" *ngIf="settingsForm.invoiceSettings.useCustomFormat">
+          <div class="configuration-row">
+            <div class="form-group flex-item">
+              <label>Prefix Format</label>
+              <input type="text" [(ngModel)]="settingsForm.invoiceSettings.prefix" placeholder="e.g. INV-">
+            </div>
+            <div class="form-group flex-item">
+              <label>Next Number</label>
+              <input type="number" [(ngModel)]="settingsForm.invoiceSettings.nextNumber" min="1">
+            </div>
+            <div class="form-group flex-item">
+              <label>Padding</label>
+              <input type="number" [(ngModel)]="settingsForm.invoiceSettings.padding" min="0" max="10">
+            </div>
+
+            <div class="preview-panel-inline">
+              <div class="preview-meta">LIVE PREVIEW</div>
+              <div class="preview-text">
+                {{ settingsForm.invoiceSettings.prefix }}{{ (settingsForm.invoiceSettings.nextNumber +
+                '').padStart(settingsForm.invoiceSettings.padding, '0') }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Section 2: Currency Defaults with Custom Dropdown -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-title">Global Workspace Currency</span>
+            <span class="setting-desc">Choose the default currency for all your new invoices.</span>
+          </div>
+
+          <div class="currency-selector-box">
+            <div class="indicator-badge">
+              {{ settingsForm.defaultCurrency.symbol }}
+            </div>
+
+            <div class="custom-dropdown">
+              <button class="dropdown-toggle" (click)="toggleCurrencyDropdown()">
+                <div class="toggle-content">
+                  <span class="selected-code">{{ settingsForm.defaultCurrency.code }}</span>
+                  <span class="selected-name">{{ settingsForm.defaultCurrency.code === 'USD' ? 'US Dollar' :
+                    settingsForm.defaultCurrency.code === 'INR' ? 'Indian Rupee' :
+                    settingsForm.defaultCurrency.code === 'EUR' ? 'Euro' :
+                    settingsForm.defaultCurrency.code === 'GBP' ? 'British Pound' :
+                    settingsForm.defaultCurrency.code === 'JPY' ? 'Japanese Yen' :
+                    settingsForm.defaultCurrency.code === 'AUD' ? 'Australian Dollar' : 'Canadian Dollar' }}</span>
+                </div>
+                <div class="chevron" [class.open]="showCurrencyDropdown"></div>
+              </button>
+
+              <div class="dropdown-menu" *ngIf="showCurrencyDropdown">
+                <div *ngFor="let c of currencies" class="dropdown-item"
+                  [class.active]="settingsForm.defaultCurrency.code === c.code" (click)="selectCurrency(c)">
+                  <span class="item-symbol">{{ c.symbol }}</span>
+                  <div class="item-info">
+                    <span class="item-name">{{ c.name }}</span>
+                    <span class="item-code">{{ c.code }}</span>
+                  </div>
+                  <div class="active-check" *ngIf="settingsForm.defaultCurrency.code === c.code"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -58,6 +58,10 @@
       </div>
       
       <div class="header-actions">
+        <div class="header-tabs" style="display:flex; gap:10px; margin-right:20px;">
+           <button class="tab-sub-btn" [class.active]="activeDocSection === 'all'" (click)="activeDocSection = 'all'">Finalized</button>
+           <button class="tab-sub-btn" [class.active]="activeDocSection === 'drafts'" (click)="activeDocSection = 'drafts'">My Drafts</button>
+        </div>
         <button class="btn-create-header" (click)="createNew()">
           <svg style="width:14px;height:14px;margin-right:6px"><use [attr.href]="icons.plus"></use></svg>
           New Invoice
@@ -74,8 +78,8 @@
       </div>
     </div>
   
-    <!-- High-Density Grid View -->
-    <div class="grid-container" *ngIf="viewMode === 'grid'">
+    <!-- High-Density Grid View (Finalized) -->
+    <div class="grid-container" *ngIf="viewMode === 'grid' && activeDocSection === 'all'">
       <div class="action-card" (click)="createNew()" *ngIf="currentPage === 1">
         <div class="dashed-border">
           <div class="plus-box">
@@ -86,32 +90,76 @@
       </div>
   
       <div class="invoice-card animated-up" *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
-        <div class="preview-skeleton">
-          <div class="s-badge">{{ inv.invoiceNo }}</div>
-          <div class="s-lines">
-            <div class="s-line full"></div>
-            <div class="s-line full"></div>
-            <div class="s-line half"></div>
-            <div class="s-line half"></div>
-          </div>
+        <div class="thumbnail-container">
+           <app-invoice-thumbnail [fullData]="inv.fullData"></app-invoice-thumbnail>
+           
+           <!-- Floating Badges/Actions -->
+            <div class="card-badges">
+              <div class="icon-badge public" title="Finalized Invoice">
+                <svg><use [attr.href]="icons.globe"></use></svg>
+              </div>
+            </div>
+
+           <div class="card-actions">
+              <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+                <svg class="act-i"><use [attr.href]="icons.edit"></use></svg>
+              </button>
+              <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+                <svg class="act-i"><use [attr.href]="icons.delete"></use></svg>
+              </button>
+           </div>
         </div>
         <div class="card-footer-info">
           <div class="footer-row-top">
             <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
-            <div class="card-actions-overlay">
-              <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
-                <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.edit"></use></svg>
-              </button>
-              <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
-                <svg class="act-i" style="width:14px;height:14px"><use [attr.href]="icons.delete"></use></svg>
-              </button>
-            </div>
           </div>
           <div class="footer-row-bottom">
             <span class="date">{{ inv.dateCreated }}</span>
             <span class="total">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
           </div>
         </div>
+      </div>
+      
+      <div class="empty-section" *ngIf="finalizedInvoices.length === 0">
+         <p>No finalized invoices yet.</p>
+      </div>
+    </div>
+
+    <!-- Drafts Grid View -->
+    <div class="grid-container" *ngIf="viewMode === 'grid' && activeDocSection === 'drafts'">
+      <div class="invoice-card animated-up" *ngFor="let inv of draftInvoices" (click)="onEdit(inv.id, $event)">
+        <div class="thumbnail-container">
+           <app-invoice-thumbnail [fullData]="inv.fullData"></app-invoice-thumbnail>
+           
+           <!-- Floating Badges/Actions -->
+           <div class="card-badges">
+             <div class="icon-badge draft" title="Draft Invoice">
+               <svg><use [attr.href]="icons.edit"></use></svg>
+             </div>
+           </div>
+
+           <div class="card-actions-overlay">
+              <button class="btn-sm-act" (click)="onEdit(inv.id, $event)" title="Edit">
+                <svg class="act-i"><use [attr.href]="icons.edit"></use></svg>
+              </button>
+              <button class="btn-sm-act del" (click)="onDelete(inv.id, $event)" title="Delete">
+                <svg class="act-i"><use [attr.href]="icons.delete"></use></svg>
+              </button>
+           </div>
+        </div>
+        <div class="card-footer-info">
+          <div class="footer-row-top">
+            <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
+          </div>
+          <div class="footer-row-bottom">
+             <span class="date">Edited: {{ inv.dateCreated | date:'MMM d' }}</span>
+             <span class="total-brief" style="font-weight: 800; font-size: 13px; color: #ffffff;">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
+             <button class="btn-edit-card primary">Resume</button>
+          </div>
+        </div>
+      </div>
+      <div class="empty-section" *ngIf="draftInvoices.length === 0">
+         <p>No active drafts found.</p>
       </div>
     </div>
   
@@ -222,5 +270,13 @@
       </div>
     </div>
   </div>
-
 </div>
+
+<!-- Image Cropper Modal -->
+<app-image-cropper-modal
+  *ngIf="showCropper"
+  [imageChangedEvent]="imageChangedEvent"
+  [roundCropper]="false"
+  (cropped)="onImageCropped($event)"
+  (canceled)="showCropper = false"
+></app-image-cropper-modal>

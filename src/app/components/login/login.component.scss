@@ -80,7 +80,8 @@
   @media (max-width: 600px) {
     padding: 24px 20px 20px;
     width: 100%;
-    margin-top: 40px; /* space for the absolute theme toggle */
+    margin-top: 40px;
+    /* space for the absolute theme toggle */
   }
 
   /* Logo */
@@ -94,9 +95,9 @@
       height: auto;
       max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 3px 10px hsla(var(--p-h), var(--p-s), var(--p-l), 0.25));
-      transition: transform 0.3s ease;
-      animation: float 4s ease-in-out infinite;
+      // filter: drop-shadow(0 3px 10px hsla(var(--p-h), var(--p-s), var(--p-l), 0.25));
+      // transition: transform 0.3s ease;
+      // animation: float 4s ease-in-out infinite;
 
       @media (max-width: 600px) {
         width: 160px;
@@ -105,8 +106,15 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
 
   /* Heading block */

@@ -11,30 +11,34 @@ import { UserCreateComponent } from './components/admin/user-create/user-create.
 import { InvoiceEditorComponent } from './components/invoice-editor/invoice-editor.component';
 import { InvoiceViewerComponent } from './components/invoice-viewer/invoice-viewer.component';
 import { ProfileComponent } from './components/profile/profile.component';
+import { SettingsComponent } from './components/settings/settings.component';
 import { TemplateGalleryComponent } from './components/dashboard/template-gallery/template-gallery.component';
 import { Error404Component } from './components/errors/error404/error404.component';
 import { Error401Component } from './components/errors/error401/error401.component';
 
 
+import { LandingPageComponent } from './components/landing-page/landing-page.component';
+
 export const routes: Routes = [
+  { path: '', component: LandingPageComponent },
   { path: 'login', component: LoginComponent },
   {
     path: 'dashboard',
     component: UserDashboardComponent,
     canActivate: [AuthGuard],
-    data: { roles: ['ADMIN', 'USER'] }
+    data: { roles: ['USER'] }
   },
   {
     path: 'designs',
     component: TemplateGalleryComponent,
     canActivate: [AuthGuard],
-    data: { roles: ['ADMIN', 'USER'] }
+    data: { roles: ['USER'] }
   },
   {
     path: 'documents',
     component: UserDocumentsComponent,
     canActivate: [AuthGuard],
-    data: { roles: ['ADMIN', 'USER'] }
+    data: { roles: ['USER'] }
   },
   {
     path: 'admin',
@@ -68,13 +72,18 @@ export const routes: Routes = [
     data: { roles: ['ADMIN', 'USER'] }
   },
   {
-    path: 'settings',
+    path: 'profile',
     component: ProfileComponent,
+    canActivate: [AuthGuard],
+    data: { roles: ['ADMIN', 'USER'] }
+  },
+  {
+    path: 'settings',
+    component: SettingsComponent,
     canActivate: [AuthGuard],
     data: { roles: ['ADMIN', 'USER'] }
   },
   { path: '401', component: Error401Component },
   { path: '404', component: Error404Component },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: '**', component: Error404Component }
 ];

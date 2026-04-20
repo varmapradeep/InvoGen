@@ -1,0 +1,244 @@
+<div class="landing-wrapper" [class.menu-open]="isMenuOpen">
+  <!-- Header: Glassmorphism Nav -->
+  <nav class="lp-header" reveal #reveal>
+    <div class="header-container">
+      <div class="logo-section" (click)="scrollToSection('top')">
+        <img *ngIf="currentTheme === 'dark'" src="assets/logo/DarkTheme.png" alt="InvoGen" class="logo-img-large">
+        <img *ngIf="currentTheme === 'light'" src="assets/logo/LightTheme.png" alt="InvoGen" class="logo-img-large">
+      </div>
+
+      <div class="nav-links hide-mobile">
+        <a (click)="scrollToSection('features')">Features</a>
+        <a (click)="scrollToSection('pricing')">Pricing</a>
+        <a (click)="openContact()">Contact</a>
+      </div>
+
+      <div class="header-right">
+        <button class="theme-toggle" (click)="toggleTheme()"
+          [title]="currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode'">
+          <svg style="width:20px;height:20px">
+            <use [attr.href]="currentTheme === 'dark' ? icons.sun : icons.moon"></use>
+          </svg>
+        </button>
+
+        <ng-container *ngIf="currentUser$ | async as user; else guestActions">
+          <span class="user-greeting hide-mobile">Hi, {{user.name.split(' ')[0]}}</span>
+          <button class="btn-primary" (click)="goToDashboard()">Dashboard</button>
+        </ng-container>
+
+        <ng-template #guestActions>
+          <button class="btn-login hide-mobile" routerLink="/login">Login</button>
+        </ng-template>
+
+        <button class="mobile-menu-btn" (click)="toggleMenu()">
+          <div class="burger" [class.open]="isMenuOpen">
+            <span></span><span></span><span></span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-overlay" [class.active]="isMenuOpen" (click)="closeMenu()">
+    <div class="overlay-content" (click)="$event.stopPropagation()">
+      <a (click)="scrollToSection('features')">Features</a>
+      <a (click)="scrollToSection('pricing')">Pricing</a>
+      <a (click)="openContact()">Contact Us</a>
+      <hr>
+      <ng-container *ngIf="currentUser$ | async; else mobileGuest">
+        <button class="btn-mobile-login" (click)="goToDashboard()">Dashboard</button>
+      </ng-container>
+      <ng-template #mobileGuest>
+        <button class="btn-mobile-login" routerLink="/login">Go to Login</button>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="top">
+    <div class="hero-bg-blobs">
+      <div class="blob p-1"></div>
+      <div class="blob p-2"></div>
+    </div>
+
+    <div class="hero-container">
+      <div class="hero-content" reveal #reveal>
+        <span class="hero-badge">New Version 1.0 Released</span>
+        <h1>Create Professional Invoices <span>In Seconds.</span></h1>
+        <p>The high-fidelity invoice generator designed for modern businesses. Drag-and-drop your way to beautiful,
+          brand-aligned documents.</p>
+
+        <div class="hero-btns">
+          <ng-container *ngIf="currentUser$ | async; else guestHero">
+            <button class="btn-hero-primary" (click)="goToDashboard()">Go to Dashboard</button>
+          </ng-container>
+          <ng-template #guestHero>
+            <button class="btn-hero-primary" routerLink="/login">Get Started Free</button>
+            <button class="btn-hero-secondary" (click)="scrollToSection('features')">Explore Features</button>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="hero-visual" reveal #reveal>
+        <div class="visual-wrapper">
+          <img src="assets/background/landing-hero.png" alt="InvoGen Modern Dashboard" class="main-hero-image">
+          <div class="floating-card c1">
+            <div class="sc-dot"></div>
+            <span>Generated Successfully</span>
+          </div>
+          <div class="floating-card c2">
+            <div class="sc-line l1"></div>
+            <div class="sc-line l2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <section class="stats-bar" reveal #reveal>
+    <div class="stats-container">
+      <div class="stat-item" *ngFor="let stat of stats">
+        <h3>{{ stat.value }}</h3>
+        <p>{{ stat.label }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features-section" id="features">
+    <div class="section-header" reveal #reveal>
+      <span class="sub-title">Productivity First</span>
+      <h2>Everything you need to <span>Scale.</span></h2>
+      <p>Stop wasting time with complex spreadsheets. InvoGen provides a streamlined workflow from draft to delivery.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" *ngFor="let f of features" reveal #reveal>
+        <div class="icon-box">
+          <svg>
+            <use [attr.href]="f.icon"></use>
+          </svg>
+        </div>
+        <h3>{{ f.title }}</h3>
+        <p>{{ f.desc }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing-section" id="pricing">
+    <div class="section-header" reveal #reveal>
+      <span class="sub-title">Pricing</span>
+      <h2>Simple, <span>Transparent</span> Plans.</h2>
+      <p>No hidden fees. Choose the plan that fits your business needs.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="pricing-card" *ngFor="let plan of plans" [class.recommended]="plan.recommended" reveal #reveal>
+        <div class="recommend-badge" *ngIf="plan.recommended">Most Popular</div>
+        <div class="card-head">
+          <h3>{{ plan.name }}</h3>
+          <div class="price">
+            <ng-container *ngIf="plan.price !== 'Free' && plan.price !== 'Custom'; else textPrice">
+              <span class="currency">Rs.</span>
+              <span class="amount">{{ plan.price }}</span>
+              <span class="period">/mo</span>
+            </ng-container>
+            <ng-template #textPrice>
+              <span class="amount">{{ plan.price }}</span>
+            </ng-template>
+          </div>
+        </div>
+        <ul class="plan-features">
+          <li *ngFor="let feat of plan.features">
+            <svg class="check-icon" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M9,20.42L2.83,14.25L1.41,15.67L9,23.25L22.59,9.66L21.17,8.25L9,20.42Z" />
+            </svg>
+            {{ feat }}
+          </li>
+        </ul>
+        <button class="btn-plan" [class.primary]="plan.recommended" [routerLink]="plan.isContact ? null : '/login'"
+          (click)="plan.isContact ? openContact() : null">
+          {{ plan.isContact ? 'Contact Us' : 'Get Started' }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-banner" reveal #reveal>
+    <div class="cta-content">
+      <h2>Ready to streamline your business?</h2>
+      <p>Join thousands of professionals using InvoGen to manage their billing.</p>
+      <button class="btn-final-cta" (click)="openContact()">Connect with Sales</button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="lp-footer">
+    <div class="footer-container">
+      <div class="footer-brand" reveal #reveal>
+        <img *ngIf="currentTheme === 'dark'" src="assets/logo/DarkTheme.png" alt="InvoGen" class="f-logo-large">
+        <img *ngIf="currentTheme === 'light'" src="assets/logo/LightTheme.png" alt="InvoGen" class="f-logo-large">
+        <p>High-fidelity invoicing for the modern era. Designed for designers, by developers.</p>
+      </div>
+      <div class="footer-links" reveal #reveal>
+        <div class="link-col">
+          <span>Product</span>
+          <a (click)="scrollToSection('features')">Features</a>
+          <a (click)="scrollToSection('pricing')">Pricing</a>
+          <a routerLink="/login">Templates</a>
+        </div>
+        <div class="link-col">
+          <span>Company</span>
+          <a (click)="openContact()">Contact Us</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 InvoGen. Built with 💜 by Keralavarma.</p>
+    </div>
+  </footer>
+
+  <!-- Contact Modal -->
+  <div class="contact-modal-overlay" *ngIf="showContactModal" (click)="closeContact()">
+    <div class="contact-modal" (click)="$event.stopPropagation()">
+      <button class="close-modal" (click)="closeContact()">&times;</button>
+
+      <div class="modal-content" *ngIf="!isSent">
+        <h2>Get in Touch</h2>
+        <p>Send us a message and we'll get back to you within 24 hours.</p>
+
+        <div class="form-body">
+          <div class="input-group">
+            <label>Full Name</label>
+            <input type="text" [(ngModel)]="contactForm.name" placeholder="John Doe">
+          </div>
+          <div class="input-group">
+            <label>Email Address</label>
+            <input type="email" [(ngModel)]="contactForm.email" placeholder="john@example.com">
+          </div>
+          <div class="input-group">
+            <label>Message</label>
+            <textarea [(ngModel)]="contactForm.message" rows="4" placeholder="How can we help?"></textarea>
+          </div>
+
+          <button class="btn-send" (click)="submitContact()" [disabled]="isSending">
+            {{ isSending ? 'Sending Message...' : 'Send Message' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-success" *ngIf="isSent">
+        <div class="success-icon">✓</div>
+        <h3>Message Sent!</h3>
+        <p>Thank you for reaching out. We've received your request and will contact you shortly.</p>
+      </div>
+    </div>
+  </div>
+</div>

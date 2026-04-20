@@ -1,19 +1,26 @@
 <div class="page-container">
   <div class="page-header">
     <div class="header-content">
-      <svg class="nav-icon" style="width:24px;height:24px"><use [attr.href]="icons.user"></use></svg>
-      <h2>My Account & Security</h2>
+      <svg class="header-icon" style="width: 24px; height: 24px; color: var(--accent-color); margin-right: 12px;">
+        <use [attr.href]="icons.user"></use>
+      </svg>
+      <h2>My Account</h2>
     </div>
   </div>
 
   <div class="profile-grid">
-    <!-- Section 1: Identity & Invoicing -->
+    <!-- Section 1: Invoicing Identity -->
     <div class="card profile-card">
       <div class="card-header">
-        <h3>Invoicing Identity</h3>
+        <div class="header-with-icon">
+          <svg class="header-icon">
+            <use [attr.href]="icons.details"></use>
+          </svg>
+          <h3>Invoicing Identity</h3>
+        </div>
         <p class="subtitle">These details identify you and appear on your invoices.</p>
       </div>
-      
+
       <div class="form-row">
         <div class="form-group flex-2">
           <label>Display Name</label>
@@ -48,9 +55,10 @@
 
       <div class="form-group">
         <label>Business Address</label>
-        <textarea rows="3" [(ngModel)]="profileForm.companyAddress" placeholder="Full address for invoice header"></textarea>
+        <textarea rows="3" [(ngModel)]="profileForm.companyAddress"
+          placeholder="Full address for invoice header"></textarea>
       </div>
-      
+
       <div class="form-group">
         <label>Business Logo</label>
         <div class="logo-uploader-mini">
@@ -67,8 +75,10 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn-save" [disabled]="loading" (click)="saveProfile()">
-          <svg class="act-i" *ngIf="!loading" style="width:14px;height:14px;margin-right:8px"><use [attr.href]="icons.save"></use></svg>
+        <button class="btn-primary" [disabled]="loading" (click)="saveProfile()" style="min-width: 180px;">
+          <svg class="act-i" *ngIf="!loading" style="width:14px;height:14px;margin-right:8px">
+            <use [attr.href]="icons.save"></use>
+          </svg>
           {{ loading ? 'Saving...' : 'Save All Details' }}
         </button>
       </div>
@@ -77,31 +87,85 @@
     <!-- Section 2: Security -->
     <div class="card security-card">
       <div class="card-header">
-        <h3>Account Security</h3>
+        <div class="header-with-icon">
+          <svg class="header-icon">
+            <use [attr.href]="icons.shield"></use>
+          </svg>
+          <h3>Account Security</h3>
+        </div>
         <p class="subtitle">Secure your workspace by updating your password.</p>
       </div>
-      
-      <div class="form-group">
-        <label>New Password</label>
-        <input type="password" [(ngModel)]="passwordForm.newPassword" placeholder="Minimum 6 characters">
-      </div>
-      
-      <div class="form-group">
-        <label>Confirm Password</label>
-        <input type="password" [(ngModel)]="passwordForm.confirmPassword" placeholder="Repeat password">
-      </div>
-      
-      <div class="form-actions">
-        <button class="btn-save security" [disabled]="passwordLoading" (click)="changePassword()">
-          <svg class="act-i" *ngIf="!passwordLoading" style="width:14px;height:14px;margin-right:8px"><use [attr.href]="icons.save"></use></svg>
-          {{ passwordLoading ? 'Updating...' : 'Update Password' }}
-        </button>
-      </div>
 
-      <div class="security-note">
-        <svg style="width:16px;height:16px;color:var(--text-muted)"><use [attr.href]="icons.settings"></use></svg>
-        <span>Password changes require a recent user session.</span>
+      <div class="security-action-box">
+        <div class="security-info">
+          <p class="info-text">Update your login credentials to keep your account safe.</p>
+          <div class="security-note">
+            <svg style="width:16px;height:16px;color:var(--text-muted)">
+              <use [attr.href]="icons.info"></use>
+            </svg>
+            <span>Password changes require a recent user session.</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" (click)="openPasswordModal()" style="min-width: 180px;">
+          <svg class="act-i" style="width:16px;height:16px;margin-right:8px">
+            <use [attr.href]="icons.edit"></use>
+          </svg>
+          Update Password
+        </button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Password Update Modal -->
+<div class="modal-overlay" *ngIf="showPasswordModal" (click)="closePasswordModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <svg class="header-icon"><use [attr.href]="icons.shield"></use></svg>
+        <h3>Update Password</h3>
+      </div>
+      <button class="btn-close" (click)="closePasswordModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <p class="modal-subtitle">Ensure your account stays secure with a strong password.</p>
+      
+      <div class="form-group">
+        <label>Current Password</label>
+        <input type="password" [(ngModel)]="passwordForm.currentPassword" placeholder="••••••••">
+      </div>
+      
+      <div class="divider"></div>
+      
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" [(ngModel)]="passwordForm.newPassword" placeholder="Min 6 characters">
+      </div>
+      
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        <input type="password" [(ngModel)]="passwordForm.confirmPassword" placeholder="Confirm new password">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-outline-sm" (click)="closePasswordModal()">Cancel</button>
+      <button class="btn-primary" [disabled]="passwordLoading" (click)="changePassword()">
+        {{ passwordLoading ? 'Updating...' : 'Update Password' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Image Cropper Modal -->
+<app-image-cropper-modal
+  *ngIf="showCropper"
+  [imageChangedEvent]="imageChangedEvent"
+  [maintainAspectRatio]="true"
+  [aspectRatio]="1"
+  [roundCropper]="false"
+  (cropped)="onImageCropped($event)"
+  (canceled)="showCropper = false">
+</app-image-cropper-modal>

@@ -7,6 +7,7 @@ import { InvoiceService, InvoiceRecord } from '../../../services/invoice.service
 import { Icons } from '../../../utils/icons.util';
 import { ToastService } from '../../../services/toast.service';
 import { SearchService } from '../../../services/search.service';
+import { ToasterMessages } from '../../../utils/messages.util';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -132,10 +133,10 @@ export class UserDocumentsComponent implements OnInit, OnDestroy {
     
     try {
       await this.invoiceService.deleteInvoice(id);
-      this.toast.success('Invoice deleted');
+      this.toast.success(ToasterMessages.invoices.deleteSuccess);
       this.invoices = this.invoices.filter(i => i.id !== id);
     } catch (err) {
-      this.toast.error('Failed to delete');
+      this.toast.error(ToasterMessages.invoices.deleteFailed);
     }
   }
 

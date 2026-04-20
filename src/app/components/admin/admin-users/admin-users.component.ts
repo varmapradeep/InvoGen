@@ -6,6 +6,7 @@ import { ToastService } from '../../../services/toast.service';
 import { Firestore, doc, updateDoc, deleteDoc } from '@angular/fire/firestore';
 import { Icons } from '../../../utils/icons.util';
 import { Router } from '@angular/router';
+import { ToasterMessages } from '../../../utils/messages.util';
 
 @Component({
   selector: 'app-admin-users',
@@ -92,7 +93,7 @@ export class AdminUserManagementComponent implements OnInit {
     if (user?.role === 'ADMIN') return;
     
     await this.authService.approveUser(userId);
-    this.toast.success('Approved');
+    this.toast.success(ToasterMessages.admin.userApproved);
     this.refreshUsers();
   }
 
@@ -102,7 +103,7 @@ export class AdminUserManagementComponent implements OnInit {
 
     const userDocRef = doc(this.firestore, `users/${userId}`);
     await updateDoc(userDocRef, { status: 'PENDING' });
-    this.toast.warning('Access revoked');
+    this.toast.warning(ToasterMessages.admin.userRevoked);
     this.refreshUsers();
   }
 
@@ -113,7 +114,7 @@ export class AdminUserManagementComponent implements OnInit {
     try {
       const userDocRef = doc(this.firestore, `users/${user.id}`);
       await deleteDoc(userDocRef);
-      this.toast.success('Deleted');
+      this.toast.success(ToasterMessages.admin.userDeleted);
       this.refreshUsers();
     } catch (err) {
       this.toast.error('Failed to delete');
@@ -138,7 +139,7 @@ export class AdminUserManagementComponent implements OnInit {
         role: this.editForm.role,
         status: this.editForm.status
       });
-      this.toast.success('Updated');
+      this.toast.success('Account updated successfully!');
       this.closeEdit();
       this.refreshUsers();
     } catch (err) {

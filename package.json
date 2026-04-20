@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "deploy": "ng build --base-href /InvoGen/ && copy dist\\invoice-app\\browser\\index.html dist\\invoice-app\\browser\\404.html && npx angular-cli-ghpages --dir=dist/invoice-app/browser"
   },
   "private": true,
   "dependencies": {
@@ -21,6 +22,7 @@
     "@angular/platform-browser-dynamic": "^18.2.0",
     "@angular/router": "^18.2.0",
     "firebase": "^12.11.0",
+    "ngx-image-cropper": "^8.0.0",
     "html2pdf.js": "^0.14.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

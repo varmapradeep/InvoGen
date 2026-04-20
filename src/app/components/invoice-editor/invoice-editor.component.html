@@ -9,6 +9,19 @@
         <img src="assets/logo/Logoonly.png" alt="InvoGen" style="width: 46px; height: 46px; object-fit: contain;">
         <span>InvoGen Builder</span>
       </div>
+
+      <!-- Premium Restriction Banner -->
+      <div class="premium-notice animated-fade-in" *ngIf="isPremiumRestricted">
+        <div class="notice-content">
+          <span class="p-icon">💎</span>
+          <div class="p-text">
+            <strong>Premium License</strong>
+            <span>Requires payment to save or export.</span>
+          </div>
+          <button class="btn-unlock" (click)="toast.info('Redirecting to payment...')">Unlock</button>
+        </div>
+      </div>
+
       <button class="btn-add-layout-main" (click)="showLayoutPicker = !showLayoutPicker">
         <span class="plus">+</span> New Layout
       </button>
@@ -84,6 +97,10 @@
               title="Double-click to rename">
               {{ getDisplayName(row.id, 'Row ' + (ri + 1)) }}
             </span>
+            <button *ngIf="editingNameId !== row.id" class="t-edit-btn" (click)="startRename(row.id, $event)"
+              title="Rename">
+              ✎
+            </button>
 
             <span class="t-badge row-badge">{{ row.sessions?.length || 0 }} col</span>
             <button class="t-del" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
@@ -110,6 +127,10 @@
                   title="Double-click to rename">
                   {{ getDisplayName(col.id, 'Col ' + (ci + 1)) }}
                 </span>
+                <button *ngIf="editingNameId !== col.id" class="t-edit-btn" (click)="startRename(col.id, $event)"
+                  title="Rename">
+                  ✎
+                </button>
 
                 <span class="t-badge col-badge">{{ col.width | number:'1.0-0' }}%</span>
                 <span class="t-badge el-count" *ngIf="col.sessions?.length">{{ col.sessions!.length }} el</span>
@@ -132,9 +153,14 @@
                     autofocus>
                   <span *ngIf="editingNameId !== el.id" class="t-label truncate" (dblclick)="startRename(el.id, $event)"
                     title="Double-click to rename">
-                    {{ getDisplayName(el.id, el.type !== 'image' && el.type !== 'items' && el.content ? ('' +
+                    {{ getDisplayName(el.id, (el.type !== 'image' && el.type !== 'items' && isString(el.content)) ? (''
+                    +
                     el.content).slice(0,16) : el.type) }}
                   </span>
+                  <button *ngIf="editingNameId !== el.id" class="t-edit-btn" (click)="startRename(el.id, $event)"
+                    title="Rename">
+                    ✎
+                  </button>
 
                   <button class="t-del" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
                   <div *cdkDragPlaceholder class="layer-placeholder"></div>
@@ -171,6 +197,8 @@
         <button class="btn-icon-action" (click)="undo()" [disabled]="!canUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
         <button class="btn-icon-action" (click)="redo()" [disabled]="!canRedo" title="Redo (Ctrl+Y)">↪ Redo</button>
         <button (click)="printInvoice()">Print / PDF</button>
+        <button class="btn-save-as" (click)="saveAsTemplate()" [disabled]="isSaving" title="Save as Template">📂
+          Template</button>
         <button class="btn-save" (click)="saveDraft()" [disabled]="isSaving">{{ isSaving ? 'Saving...' : 'Save Draft'
           }}</button>
         <button class="btn-close" (click)="exitEditor()">Exit</button>
@@ -178,48 +206,103 @@
     </header>
 
     <div class="preview-scroll-area" #previewScrollArea (wheel)="onWheelZoom($event)"
-      (touchstart)="onPinchStart($event)"
-      (touchmove)="onPinchMove($event)"
-      (touchend)="onPinchEnd()"
+      (touchstart)="onPinchStart($event)" (touchmove)="onPinchMove($event)" (touchend)="onPinchEnd()"
       (click)="selectedSessionId = null; selectedColumnId = null">
       <div class="a4-wrapper" [style.transform]="'scale(' + zoomLevel + ')'">
-        <div id="invoiceDoc" class="a4-page">
+        <div id="invoiceDoc" class="multi-page-container">
+          
+          <div *ngFor="let page of computedPages; let pi = index" class="a4-page">
+            <!-- Apply Backgrounds to Every Page -->
+            <div class="page-background" [style.background-color]="theme.pageBgColor"
+              [style.background-image]="theme.pageBgImage ? 'url(' + theme.pageBgImage + ')' : 'none'"
+              [style.opacity]="theme.pageBgOpacity ?? 1"></div>
 
-          <ng-container *ngFor="let s of sessions">
-            <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: s }"></ng-container>
-          </ng-container>
-
-          <div class="empty-canvas-state animated-fade-in" *ngIf="sessions.length === 0">
-            <div class="empty-msg">
-              <svg class="empty-icon">
-                <use [attr.href]="icons.receipt"></use>
-              </svg>
-              <h2>Ready to Design?</h2>
-              <p>Add a layout row from the left panel to begin your custom invoice.</p>
+            <!-- Page Content -->
+            <div class="page-content">
+               <ng-container *ngFor="let s of page">
+                <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: s }"></ng-container>
+              </ng-container>
             </div>
+
+            <!-- Empty State (Only on Page 1 if no sessions) -->
+            <div class="empty-canvas-state animated-fade-in" *ngIf="sessions.length === 0 && pi === 0">
+              <div class="empty-msg">
+                <svg class="empty-icon">
+                  <use [attr.href]="icons.receipt"></use>
+                </svg>
+                <h2>Ready to Design?</h2>
+                <p>Add a layout row from the left panel to begin your custom invoice.</p>
+              </div>
+            </div>
+
+            <!-- Watermark on Every Page -->
+            <div class="watermark">Created with InvoGen Builder</div>
+            
+            <!-- Page Numbering (Optional helper) -->
+            <div class="page-number-hint" *ngIf="computedPages.length > 1">Page {{ pi + 1 }} of {{ computedPages.length }}</div>
           </div>
 
-          <div class="watermark">Created with InvoGen Builder</div>
         </div>
       </div>
     </div>
   </main>
 
   <!-- RIGHT: Property Inspector -->
-  <aside class="property-inspector animated-fade-in" *ngIf="selectedSession">
+  <aside class="property-inspector animated-fade-in">
     <div class="inspector-header">
       <div class="ins-title">
-        <h3>{{ selectedSession.type | uppercase }}</h3>
-        <p>Property Controls</p>
+        <h3>{{ selectedSession ? (selectedSession.type | uppercase) : 'PAGE SETTINGS' }}</h3>
+        <p>{{ selectedSession ? 'Property Controls' : 'Global Design' }}</p>
       </div>
-      <div class="inspector-tabs">
+      <div class="inspector-tabs" *ngIf="selectedSession">
         <button [class.active]="activeInspectorTab === 'content'"
           (click)="activeInspectorTab = 'content'">Content</button>
         <button [class.active]="activeInspectorTab === 'styles'" (click)="activeInspectorTab = 'styles'">Styles</button>
       </div>
     </div>
 
-    <div class="inspector-scroll-area">
+    <!-- PAGE SETTINGS (When Nothing Selected) -->
+    <div class="inspector-scroll-area" *ngIf="!selectedSession">
+      <div class="ins-tab-pane">
+        <div class="ins-section">
+          <label>Background Image</label>
+          <div class="img-upload-zone" *ngIf="!theme.pageBgImage" (click)="pageBgInput.click()">
+            <input type="file" #pageBgInput (change)="onPageBgUpload($event)" accept="image/*" style="display:none">
+            <button class="btn-upload-direct">
+              <svg class="upload-icon" style="width:16px;height:16px;margin-right:8px">
+                <use [attr.href]="icons.plus"></use>
+              </svg>
+              <span>Upload Image</span>
+            </button>
+          </div>
+          <div class="img-preview-pane" *ngIf="theme.pageBgImage">
+            <img [src]="theme.pageBgImage" style="max-height: 120px; object-fit: cover; border-radius: 8px;">
+            <button class="btn-img-replace" (click)="theme.pageBgImage = ''">Remove Background</button>
+          </div>
+
+          <div class="premium-range-group">
+            <div class="range-header">
+              <label>Image Opacity</label>
+              <span class="range-value">{{ (theme.pageBgOpacity || 0) * 100 | number:'1.0-0' }}%</span>
+            </div>
+            <div class="slider-wrapper">
+              <input type="range" [(ngModel)]="theme.pageBgOpacity" min="0" max="1" step="0.05">
+            </div>
+          </div>
+        </div>
+        <div class="ins-section">
+          <label>Background Color</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Pick Color</span>
+              <input type="color" [(ngModel)]="theme.pageBgColor">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inspector-scroll-area" *ngIf="selectedSession">
       <!-- CONTENT TAB -->
       <div class="ins-tab-pane" *ngIf="activeInspectorTab === 'content'">
 
@@ -265,7 +348,9 @@
             <div class="ins-layer-item" *ngFor="let child of selectedContainerSessions"
               [class.active]="selectedSessionId === child.id" (click)="selectSession(child.id)">
               <div class="layer-type-badge">{{ child.type }}</div>
-              <span class="layer-text truncate">{{ child.type === 'image' ? 'Image File' : (child.content || child.type)
+              <span class="layer-text truncate">{{ child.type === 'image' ? 'Image File' : (child.type === 'header' ?
+                'Business Branding' : (child.type === 'billed-to' ? 'Client Details' : (isString(child.content) ?
+                child.content : child.type)))
                 }}</span>
             </div>
             <div class="ins-empty-layers" *ngIf="selectedContainerSessions.length === 0">
@@ -280,15 +365,40 @@
           <textarea [(ngModel)]="selectedSession.content" rows="6" placeholder="Enter text..."></textarea>
         </div>
 
+        <!-- Branding / Header Logo Editor -->
+        <div class="ins-group" *ngIf="selectedSession.type === 'header'">
+          <label>Business Logo</label>
+          <div class="logo-preview-pane" *ngIf="selectedSession.content.customLogo || currentUser?.companyLogoUrl">
+            <img [src]="selectedSession.content.customLogo || currentUser?.companyLogoUrl" [style.max-height.px]="80">
+            <button class="btn-img-replace"
+              (click)="selectedSession.content.customLogo = ''; selectedSession.content.logoSize = 60">Remove</button>
+          </div>
+          <div class="img-upload-zone" *ngIf="!selectedSession.content.customLogo && !currentUser?.companyLogoUrl"
+            (click)="headerLogoInput.click()">
+            <input type="file" #headerLogoInput (change)="onLogoUpload($event)" accept="image/*" style="display:none">
+            <button class="btn-upload-direct">
+              <span>Upload Logo</span>
+            </button>
+          </div>
+
+          <label class="spacing-top">Logo Size (px)</label>
+          <input type="range" [(ngModel)]="selectedSession.content.logoSize" min="20" max="250" step="5">
+          <div style="text-align:right; font-size:11px; color:var(--text-muted)">{{selectedSession.content.logoSize}}px
+          </div>
+        </div>
+
         <!-- Image Editor -->
         <div class="ins-group" *ngIf="selectedSession.type === 'image'">
           <label>Image Resource</label>
-          <div class="img-upload-zone" *ngIf="!selectedSession.content">
-            <input type="file" (change)="onSessionImageUpload($event, selectedSession)" accept="image/*">
-            <svg class="upload-icon" style="width:24px;height:24px">
-              <use [attr.href]="icons.plus"></use>
-            </svg>
-            <span>Upload Image</span>
+          <div class="img-upload-zone" *ngIf="!selectedSession.content" (click)="sessionImgInput.click()">
+            <input type="file" #sessionImgInput (change)="onSessionImageUpload($event, selectedSession)"
+              accept="image/*" style="display:none">
+            <button class="btn-upload-direct">
+              <svg class="upload-icon" style="width:16px;height:16px;margin-right:8px">
+                <use [attr.href]="icons.plus"></use>
+              </svg>
+              <span>Choose Image</span>
+            </button>
           </div>
           <div class="img-preview-pane" *ngIf="selectedSession.content">
             <img [src]="selectedSession.content">
@@ -296,17 +406,30 @@
           </div>
         </div>
 
-        <!-- Smart Field Editor -->
         <div class="ins-group" *ngIf="selectedSession.type === 'data-field'">
-          <label>Data Mapping</label>
-          <select [(ngModel)]="selectedSession.content">
-            <option value="invoiceNo">Invoice Number</option>
-            <option value="date">Invoice Date</option>
-            <option value="total">Grand Total</option>
-            <option value="clientName">Client Name</option>
-            <option value="companyName">Company Name</option>
-          </select>
-          <p class="ins-help">This field will automatically pull data from your current invoice context.</p>
+          <label>Smart Data Mapping</label>
+          <div class="smart-field-grid">
+            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'invoiceNo'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'invoiceNo', label: ''} : selectedSession.content.field = 'invoiceNo'">Number</button>
+            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'date'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'date', label: ''} : selectedSession.content.field = 'date'">Date</button>
+            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'total'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'total', label: ''} : selectedSession.content.field = 'total'">Grand Total</button>
+            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'clientName'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'clientName', label: ''} : selectedSession.content.field = 'clientName'">Client</button>
+            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'companyName'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'companyName', label: ''} : selectedSession.content.field = 'companyName'">Company</button>
+          </div>
+          
+          <div class="label-control-box" *ngIf="!isString(selectedSession.content)">
+            <label class="ins-sub-label spacing-top">Field Label (Optional)</label>
+            <div class="label-input-wrap">
+              <input type="text" [(ngModel)]="selectedSession.content.label" placeholder="e.g. Invoice #: ">
+              <button class="btn-clear-label" title="Remove Label" *ngIf="selectedSession.content.label" (click)="selectedSession.content.label = ''">×</button>
+            </div>
+            <p class="ins-help">Add text before the raw data value.</p>
+          </div>
+          <p class="ins-help" *ngIf="isString(selectedSession.content)">Choose a field above to enable labeling.</p>
         </div>
 
         <!-- Items Table -->
@@ -318,12 +441,12 @@
               <div class="ins-item-vals">
                 <input type="number" [(ngModel)]="item.qty" placeholder="Qty">
                 <input type="number" [(ngModel)]="item.rate" placeholder="Rate">
-                <button (click)="selectedSession.content.splice(i, 1)"
+                <button (click)="selectedSession.content.splice(i, 1); paginate()"
                   *ngIf="selectedSession.content.length > 1">×</button>
               </div>
             </div>
           </div>
-          <button class="btn-ins-add" (click)="selectedSession.content.push({description:'', qty:1, rate:0})">+ Add
+          <button class="btn-ins-add" (click)="selectedSession.content.push({description:'', qty:1, rate:0}); paginate()">+ Add
             Item</button>
         </div>
 
@@ -351,7 +474,8 @@
           <div class="s-row spacing-top">
             <div class="s-field">
               <span>Row Background</span>
-              <input type="color" [(ngModel)]="selectedSession.bgColor">
+              <input type="color" [ngModel]="selectedSession.bgColor || '#ffffff'"
+                (ngModelChange)="selectedSession.bgColor = $event">
             </div>
             <div class="s-field">
               <span>Internal Padding</span>
@@ -394,11 +518,11 @@
           <label>Image Dimensions</label>
           <div class="s-row">
             <div class="s-field">
-              <span>Max Width (px)</span>
+              <span>Width (px)</span>
               <input type="number" [(ngModel)]="selectedSession.width" placeholder="Auto">
             </div>
             <div class="s-field">
-              <span>Max Height (px)</span>
+              <span>Height (px)</span>
               <input type="number" [(ngModel)]="selectedSession.height" placeholder="Auto">
             </div>
           </div>
@@ -406,6 +530,31 @@
             <div class="s-field">
               <span>Opacity (0-1)</span>
               <input type="number" [(ngModel)]="selectedSession.opacity" step="0.1" min="0" max="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Specific Controls -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'line'">
+          <label>Line Configuration</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Number of Lines</span>
+              <input type="number" [(ngModel)]="selectedSession.content.lineCount" min="1" max="10">
+            </div>
+            <div class="s-field">
+              <span>Gap (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.content.lineGap" min="0">
+            </div>
+          </div>
+          <div class="s-row spacing-top">
+            <div class="s-field">
+              <span>Thickness (px)</span>
+              <input type="number" [(ngModel)]="selectedSession.height" min="1">
+            </div>
+            <div class="s-field">
+              <span>Width (%)</span>
+              <input type="number" [(ngModel)]="selectedSession.width" min="1" max="100">
             </div>
           </div>
         </div>
@@ -459,7 +608,8 @@
           <div class="s-row">
             <div class="s-field">
               <span>Text Color</span>
-              <input type="color" [(ngModel)]="selectedSession.textColor">
+              <input type="color" [ngModel]="selectedSession.textColor || '#000000'"
+                (ngModelChange)="selectedSession.textColor = $event">
             </div>
             <div class="s-field">
               <span>Background</span>
@@ -536,13 +686,11 @@
 
   <!-- Component Wrapper -->
   <div class="component-wrapper" *ngIf="s.type !== 'layout-row' && s.type !== 'layout-column'"
-    [class.selected]="selectedSessionId === s.id" 
-    [style.text-align]="s.alignment" 
+    [class.selected]="selectedSessionId === s.id" [style.text-align]="s.alignment"
     [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')"
-    [style.color]="s.textColor"
-    [style.background-color]="s.bgColor" [style.padding.px]="s.padding" [style.margin-top.px]="s.margin"
-    [style.margin-bottom.px]="s.margin" [style.font-size.px]="s.fontSize" [style.font-weight]="s.fontWeight"
-    (click)="selectSession(s.id); $event.stopPropagation()">
+    [style.color]="s.textColor" [style.background-color]="s.bgColor" [style.padding.px]="s.padding"
+    [style.margin-top.px]="s.margin" [style.margin-bottom.px]="s.margin" [style.font-size.px]="s.fontSize"
+    [style.font-weight]="s.fontWeight" (click)="selectSession(s.id); $event.stopPropagation()">
 
     <!-- Heading -->
     <h1 *ngIf="s.type === 'heading'" [style.margin]="0">{{ s.content }}</h1>
@@ -564,11 +712,22 @@
 
     <!-- Data Field -->
     <div *ngIf="s.type === 'data-field'" class="canvas-data-field">
-      {{ getDataFieldValue(s.content) }}
+      <span class="df-label" *ngIf="!isString(s.content) && s.content.label">{{ s.content.label }}</span>
+      <span class="df-value">{{ getDataFieldValue(s.content) }}</span>
     </div>
 
-    <!-- Separator -->
-    <div class="canvas-line" *ngIf="s.type === 'line'" [style.border-bottom-color]="theme.primaryColor"></div>
+    <!-- Advanced Multi-Line Separator -->
+    <div class="canvas-line-group" *ngIf="s.type === 'line'" 
+         [style.width.%]="s.width || 100"
+         [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')">
+       <div *ngFor="let i of getNumberRange(s.content?.lineCount || 1)"
+            class="canvas-line-item"
+            [style.border-bottom-width.px]="s.height || 1"
+            [style.border-bottom-style]="'solid'"
+            [style.border-bottom-color]="s.textColor || theme.primaryColor"
+            [style.margin-bottom.px]="i < (s.content?.lineCount || 1) - 1 ? (s.content?.lineGap || 4) : 0">
+       </div>
+    </div>
 
     <!-- Branding Module -->
     <header class="inv-header" *ngIf="s.type === 'header'">
@@ -645,3 +804,17 @@
 
   </div>
 </ng-template>
+
+<!-- Image Cropper Modal -->
+<app-image-cropper-modal *ngIf="showCropper" [imageChangedEvent]="imageChangedEvent" [roundCropper]="cropperRound"
+  [maintainAspectRatio]="shouldMaintainAspectRatio" [aspectRatio]="cropperAspectRatio"
+  (cropped)="handleCroppedImage($event)" (canceled)="showCropper = false"></app-image-cropper-modal>
+
+<!-- Custom Confirm Modal -->
+<app-confirm-modal *ngIf="sessionToDelete" title="Delete Element"
+  message="Are you sure you want to remove this element? This action cannot be undone." (confirmed)="onConfirmDelete()"
+  (canceled)="onCancelDelete()"></app-confirm-modal>
+
+<!-- Save Template Modal -->
+<app-save-template-modal *ngIf="showSaveTemplateModal" [isAdmin]="currentUser?.role === 'ADMIN'"
+  (save)="handleSaveTemplate($event)" (cancel)="showSaveTemplateModal = false"></app-save-template-modal>

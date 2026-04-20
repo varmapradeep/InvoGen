@@ -26,15 +26,15 @@ import { ToastService, Toast } from '../../services/toast.service';
   styles: [`
     .toast-container {
       position: fixed;
-      bottom: 24px;
+      top: 24px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999;
       display: flex;
-      flex-direction: column-reverse;
-      gap: 10px;
+      flex-direction: column;
+      gap: 12px;
       width: 100%;
-      max-width: 400px;
+      max-width: 450px;
       pointer-events: none;
       align-items: center;
     }
@@ -44,21 +44,21 @@ import { ToastService, Toast } from '../../services/toast.service';
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 20px;
-      border-radius: 50px; /* Pill shape for bottom center */
+      padding: 14px 24px;
+      border-radius: 16px;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      animation: slide-up 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-      backdrop-filter: blur(12px);
+      animation: slide-down 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      backdrop-filter: blur(20px);
       width: fit-content;
-      min-width: 280px;
+      min-width: 320px;
       justify-content: center;
     }
 
-    @keyframes slide-up {
-      from { transform: translateY(40px); opacity: 0; }
+    @keyframes slide-down {
+      from { transform: translateY(-40px); opacity: 0; }
       to   { transform: translateY(0);    opacity: 1; }
     }
 
@@ -109,9 +109,9 @@ import { ToastService, Toast } from '../../services/toast.service';
 
     @media (max-width: 768px) {
       .toast-container {
-        pointer-events: none;
-        bottom: 80px; /* Stay clear of mobile bottom tabs */
-        max-width: 90vw;
+        top: 16px;
+        max-width: 95vw;
+        gap: 8px;
       }
       .toast {
         padding: 8px 16px;

@@ -33,13 +33,18 @@ export interface InvoiceTheme {
   currency?: { code: string, symbol: string };
   discount?: { type: 'percent' | 'flat', value: number };
   shipping?: number;
+  pageBgColor?: string;
+  pageBgImage?: string;
+  pageBgOpacity?: number;
 }
 
 export interface InvoiceTemplate {
   id?: string;
   name: string;
   userId: string;
-  isPredefined: boolean; // For Admin-created templates
+  isPredefined: boolean; // For legacy/system master templates
+  visibility?: 'public' | 'private'; 
+  isPremium?: boolean; // NEW: Flag for premium designs
   fullData: {
     sessions: InvoiceSession[];
     theme: InvoiceTheme;
@@ -53,6 +58,7 @@ export interface InvoiceRecord {
   customerName: string;
   totalAmount: number;
   userId: string;
+  isDraft?: boolean; // NEW: Distinguish drafts from finalized records
   fullData?: {
     sessions: InvoiceSession[];
     theme: InvoiceTheme;
@@ -66,6 +72,17 @@ export class InvoiceService {
   private firestore: Firestore = inject(Firestore);
 
   constructor() {}
+
+  public async getLatestDraft(userId: string): Promise<InvoiceRecord | null> {
+    const invoicesRef = collection(this.firestore, 'invoices');
+    const q = query(invoicesRef, where('userId', '==', userId), where('isDraft', '==', true));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    
+    // Sort by most recent in memory (or use server sort if indexed)
+    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InvoiceRecord));
+    return docs.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime())[0];
+  }
 
   public async getInvoices(userId: string): Promise<InvoiceRecord[]> {
     const invoicesRef = collection(this.firestore, 'invoices');
@@ -108,6 +125,13 @@ export class InvoiceService {
     await deleteDoc(docRef);
   }
 
+  public async isInvoiceNumberUnique(userId: string, invoiceNo: string): Promise<boolean> {
+    const invoicesRef = collection(this.firestore, 'invoices');
+    const q = query(invoicesRef, where('userId', '==', userId), where('invoiceNo', '==', invoiceNo));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.empty;
+  }
+
   // --- Templates Methods ---
   public async getTemplates(userId: string): Promise<InvoiceTemplate[]> {
     try {
@@ -117,12 +141,17 @@ export class InvoiceService {
       const firestoreTemplates = querySnapshot.docs.map((doc: any) => {
         const data = doc.data();
         const id = doc.id;
-        delete data.id;
         return { ...data, id } as InvoiceTemplate;
       });
 
-      const userTemplates = firestoreTemplates.filter(t => t.userId === userId || t.isPredefined);
-      return [...MASTER_DESIGNS, ...userTemplates];
+      // Filter: Owned by user OR is Public OR is a Predefined master template
+      const allowedTemplates = firestoreTemplates.filter(t => 
+        t.userId === userId || 
+        t.visibility === 'public' || 
+        t.isPredefined
+      );
+      
+      return [...MASTER_DESIGNS, ...allowedTemplates];
     } catch (e) {
       return MASTER_DESIGNS;
     }

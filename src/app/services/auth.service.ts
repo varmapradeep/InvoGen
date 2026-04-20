@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Auth, authState, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from '@angular/fire/auth';
+import { Auth, authState, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, reauthenticateWithCredential, EmailAuthProvider } from '@angular/fire/auth';
 import { Firestore, doc, getDoc, setDoc, collection, getDocs, updateDoc } from '@angular/fire/firestore';
 import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
@@ -9,6 +9,7 @@ import { getAuth, createUserWithEmailAndPassword, updatePassword } from 'firebas
 import { environment } from '../../environments/environment';
 import { ToastService } from './toast.service';
 import { ThemeService } from './theme.service';
+import { ToasterMessages } from '../utils/messages.util';
 
 export interface User {
   id: string;
@@ -22,9 +23,19 @@ export interface User {
   phone?: string;
   taxId?: string;
   website?: string;
+  invoiceSettings?: {
+    useCustomFormat: boolean;
+    prefix: string;
+    nextNumber: number;
+    padding: number;
+  };
+  defaultCurrency?: {
+    code: string;
+    symbol: string;
+  };
 }
 
-const SESSION_DURATION_MS = 6 * 24 * 60 * 60 * 1000; // 6 days
+const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const STORAGE_KEY_LAST_LOGIN = 'lastLoginTimestamp';
 
 @Injectable({
@@ -53,7 +64,7 @@ export class AuthService {
         if (lastLogin) {
           const lastLoginMs = parseInt(lastLogin, 10);
           if (now - lastLoginMs > SESSION_DURATION_MS) {
-            this.toast.warning('Your session has expired. Please log in again.');
+            this.toast.warning(ToasterMessages.auth.sessionExpired);
             await this.logout();
             return;
           }
@@ -91,28 +102,6 @@ export class AuthService {
 
         // Load user's persisted theme from Firestore
         await this.themeService.loadUserTheme(appUser.id);
-
-        // Only auto-navigate and toast if we just came from login or it's NOT a refresh load
-        const currentUrl = this.router.url;
-
-        // If it's a manual login (coming from /login or / registration), show toast and navigate
-        if (currentUrl === '/login' || currentUrl === '/') {
-          if (appUser.status === 'PENDING') {
-            this.toast.warning('Your account is pending Admin approval. Please contact support.');
-            await signOut(this.auth);
-            this.initialAuthChecked.next(true);
-            return;
-          }
-
-          const dest = appUser.role === 'ADMIN' ? '/admin' : '/dashboard';
-
-          // Only show toast if we are visibly on the login page (manual login)
-          if (!isInitial) {
-            this.toast.success(`Welcome back, ${appUser.name}! 👋`);
-          }
-
-          this.router.navigate([dest]);
-        }
       } else {
         this.currentUserSubject.next(null);
       }
@@ -139,9 +128,18 @@ export class AuthService {
   public async loginWithGoogle(): Promise<boolean> {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(this.auth, provider);
-      localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
-      return true;
+      // Simple mobile detection
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        await signInWithRedirect(this.auth, provider);
+        // Page will redirect and logic continues after reload in the constructor
+        return true;
+      } else {
+        await signInWithPopup(this.auth, provider);
+        localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
+        return true;
+      }
     } catch (e) {
       console.error('Google Login failed', e);
       return false;
@@ -238,7 +236,13 @@ export class AuthService {
   }
 
   async uploadLogo(file: File, userId: string): Promise<string> {
-    const filePath = `logos/${userId}_${Date.now()}_${file.name}`;
+    return this.uploadImage(file, `logos/${userId}`);
+  }
+
+  /** Generic image upload to Firebase Storage */
+  async uploadImage(file: Blob, pathPrefix: string): Promise<string> {
+    const fileName = (file as File).name || `img_${Date.now()}.png`;
+    const filePath = `${pathPrefix}/${Date.now()}_${fileName}`;
     const storageRef = ref(this.storage, filePath);
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
@@ -248,5 +252,12 @@ export class AuthService {
     const user = this.auth.currentUser;
     if (!user) throw new Error('No authenticated user found');
     await updatePassword(user, newPassword);
+  }
+
+  async reauthenticate(password: string): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user || !user.email) throw new Error('No authenticated user found');
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
   }
 }

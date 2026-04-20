@@ -8,11 +8,15 @@ import { InvoiceService, InvoiceRecord, InvoiceSession, InvoiceTheme, InvoiceTem
 import { LayoutService } from '../../services/layout.service';
 import { Icons } from '../../utils/icons.util';
 import { ToastService } from '../../services/toast.service';
+import { ToasterMessages } from '../../utils/messages.util';
+import { ImageCropperModalComponent } from '../shared/image-cropper/image-cropper.component';
+import { ConfirmModalComponent } from '../shared/confirm-modal/confirm-modal.component';
+import { SaveTemplateModalComponent } from '../shared/save-template-modal/save-template-modal.component';
 
 @Component({
   selector: 'app-invoice-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [CommonModule, FormsModule, DragDropModule, ImageCropperModalComponent, ConfirmModalComponent, SaveTemplateModalComponent],
   templateUrl: './invoice-editor.component.html',
   styleUrl: './invoice-editor.component.scss',
   host: {
@@ -29,13 +33,15 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     fontFamily: 'Inter',
     currency: { code: 'USD', symbol: '$' },
     discount: { type: 'percent', value: 0 },
-    shipping: 0
+    shipping: 0,
+    pageBgColor: '#ffffff',
+    pageBgOpacity: 1,
+    pageBgImage: ''
   };
   
   invoiceNo: string = '';
   invoiceDate: string = '';
   customerName: string = '';
-  
   editId: string | null = null;
   activeTab: 'content' | 'design' | 'settings' = 'content';
   isSaving = false;
@@ -43,14 +49,24 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   isTemplateMode = false;
   templateId: string | null = null;
   currentUser: any = null;
+  isUploading = false;
+
+  // Cropper state
+  showCropper = false;
+  imageChangedEvent: any = '';
+  cropperRound = false;
+  cropperTarget: 'logo' | 'pageBg' | InvoiceSession | null = null;
 
   // UI State
-  zoomLevel: number = 0.5;
+  zoomLevel: number = 0.8;
+  computedPages: InvoiceSession[][] = [];
   selectedSessionId: string | null = null;
   selectedColumnId: string | null = null;
   showLayoutPicker: boolean = false;
   activeInspectorTab: 'content' | 'styles' = 'content';
   expandedRows: { [rowId: string]: boolean } = {};
+  pendingUploads = new Map<string, Blob>(); // Element ID -> Blob
+  sessionToDelete: string | null = null;
   customNames: { [id: string]: string } = {};       // user-defined names for rows/cols
   editingNameId: string | null = null;              // which node is being renamed
   expandedSections: { [key: string]: boolean } = {
@@ -66,7 +82,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
 
   // Pinch-to-zoom state
   private _pinchStartDist: number = 0;
-  private _pinchStartZoom: number = 0.5;
+  private _pinchStartZoom: number = 0.8;
   private _isPinching: boolean = false;
 
   // Undo / Redo
@@ -86,12 +102,29 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     return ids;
   }
 
-  fonts = ['Inter', 'Roboto', 'Outfit', 'Playfair Display', 'Poppins'];
+  getNumberRange(n: number): number[] {
+    return Array.from({ length: Math.max(0, n || 0) }, (_, i) => i);
+  }
+  
+  get cropperAspectRatio(): number {
+    if (this.cropperTarget === 'logo') return 1;
+    if (this.cropperTarget === 'pageBg') return 210 / 297; // A4 Ratio
+    return 1;
+  }
+
+  get shouldMaintainAspectRatio(): boolean {
+    if (this.cropperTarget === 'logo' || this.cropperTarget === 'pageBg') return true;
+    return false;
+  }
+
   currencies = [
     { code: 'USD', symbol: '$' },
-    { code: 'INR', symbol: 'Rs.' },
+    { code: 'INR', symbol: '₹' },
     { code: 'EUR', symbol: '€' },
-    { code: 'GBP', symbol: '£' }
+    { code: 'GBP', symbol: '£' },
+    { code: 'JPY', symbol: '¥' },
+    { code: 'AUD', symbol: 'A$' },
+    { code: 'CAD', symbol: 'C$' }
   ];
   
   constructor(
@@ -99,7 +132,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     private invoiceService: InvoiceService,
     public router: Router,
     private route: ActivatedRoute,
-    private toast: ToastService,
+    public toast: ToastService,
     private layoutService: LayoutService
   ) {}
 
@@ -118,20 +151,40 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       this.currentUser = user;
     });
 
-    this.route.params.subscribe(async params => {
-      this.isTemplateMode = this.route.snapshot.queryParams['mode'] === 'template';
-      this.templateId = this.route.snapshot.queryParams['id'];
+    // NEW: Combine params and queryParams to ensure fresh=true is always handled
+    import('rxjs').then(m => {
+      m.combineLatest([this.route.params, this.route.queryParams]).subscribe(async ([params, qParams]) => {
+        this.isTemplateMode = qParams['mode'] === 'template';
+        this.templateId = qParams['id'];
+        const isFresh = qParams['fresh'] === 'true';
 
-      if (params['id']) {
-        this.editId = params['id'];
-        await this.loadInvoice(this.editId!);
-      } else if (this.isTemplateMode && this.templateId) {
-        await this.loadTemplate(this.templateId);
-      } else if (this.route.snapshot.queryParams['templateId']) {
-        await this.loadTemplate(this.route.snapshot.queryParams['templateId']);
-      } else {
-        this.initNewInvoice();
-      }
+        if (params['id']) {
+          this.editId = params['id'];
+          await this.loadInvoice(this.editId!);
+        } else if (this.isTemplateMode && this.templateId) {
+          await this.loadTemplate(this.templateId);
+        } else if (qParams['templateId']) {
+          await this.loadTemplate(qParams['templateId']);
+        } else if (this.currentUser) {
+          if (!isFresh) {
+            const latestDraft = await this.invoiceService.getLatestDraft(this.currentUser.id);
+            if (latestDraft) {
+              this.editId = latestDraft.id!;
+              await this.loadInvoice(this.editId);
+              setTimeout(() => {
+                this.toast.info('Restored your latest draft.');
+              }, 0);
+            } else {
+              this.initNewInvoice();
+            }
+          } else {
+            this.initNewInvoice();
+          }
+        } else {
+          this.initNewInvoice();
+        }
+        this.paginate();
+      });
     });
   }
 
@@ -145,9 +198,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.theme = { 
       primaryColor: '#000000', 
       fontFamily: 'Inter',
-      currency: { code: 'USD', symbol: '$' },
+      currency: this.currentUser?.defaultCurrency ? { ...this.currentUser.defaultCurrency } : { code: 'USD', symbol: '$' },
       discount: { type: 'percent', value: 0 },
-      shipping: 0
+      shipping: 0,
+      pageBgColor: '#ffffff',
+      pageBgOpacity: 1
     };
     this.sessions = [];
   }
@@ -170,6 +225,18 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     if (template) {
        this.sessions = JSON.parse(JSON.stringify(template.fullData.sessions));
        this.theme = { ...template.fullData.theme };
+       
+       // Clone Logic: If this is a Public/Admin template AND I am not the owner, clear IDs
+       if (template.userId !== this.currentUser?.id) {
+          this.editId = null; 
+          this.templateId = null;
+          this.isTemplateMode = false;
+          this.toast.info('Working on a copy of ' + template.name);
+       } else {
+          // If I own it and I'm in template mode, keep templateId to allow UPDATING it
+          this.templateId = template.id || null;
+       }
+
        const header = this.sessions.find(s => s.type === 'header');
        if (header && this.currentUser?.companyLogoUrl) {
          header.content = { ...header.content, customLogo: this.currentUser.companyLogoUrl };
@@ -184,11 +251,104 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   private initExpandedRows() {
     this.expandedRows = {};
     for (const row of this.sessions) this.expandedRows[row.id] = false;
+    this.paginate();
+  }
+
+  /**
+   * Estimates the visual height of a session based on its content type and data.
+   * This ensures pagination is aware of growing tables or text blocks.
+   */
+  getEstimatedHeight(session: InvoiceSession): number {
+    let height = session.height || 0;
+
+    // Fixed Minimums for layout rows
+    if (session.type === 'layout-row') {
+      height = Math.max(height, 80);
+      if (session.sessions) {
+        // A row is at least as tall as its tallest column
+        let maxColHeight = 0;
+        for (const col of session.sessions) {
+          let colContentHeight = 0;
+          if (col.sessions) {
+            for (const sub of col.sessions) {
+              colContentHeight += this.getEstimatedHeight(sub);
+            }
+          }
+          maxColHeight = Math.max(maxColHeight, colContentHeight);
+        }
+        height = Math.max(height, maxColHeight);
+      }
+    }
+
+    // Item Table: Header (45px) + Row (38px) * count + space
+    if (session.type === 'items' && Array.isArray(session.content)) {
+      height = 50 + (session.content.length * 40) + 20;
+    }
+
+    // Branding / Header: Fixed approx
+    if (session.type === 'header') {
+      height = (session.content?.logoSize || 60) + 120;
+    }
+
+    // Billed To: Approx
+    if (session.type === 'billed-to') {
+      height = 160;
+    }
+
+    // Note / Paragraphs: Approx 20px per 50 chars
+    if (['paragraph', 'note', 'heading'].includes(session.type)) {
+      const charCount = (session.content + '').length;
+      const lines = Math.ceil(charCount / 50);
+      height = Math.max(height || 30, lines * 24);
+    }
+
+    // Totals Box
+    if (session.type === 'tax') {
+      height = 150;
+    }
+
+    return height + (session.margin ? session.margin * 2 : 0) + (session.padding ? session.padding * 2 : 0);
+  }
+
+  /** 
+   * Automatic Pagination Logic
+   * Groups sessions into Pages based on A4 height (approx 1122px).
+   */
+  paginate() {
+    this.computedPages = [];
+    if (this.sessions.length === 0) {
+      this.computedPages = [[]];
+      return;
+    }
+
+    const A4_HEIGHT_PX = 1122;
+    const PAGE_PADDING = 120; // Increased padding for header/footer safety
+    const MAX_CONTENT_HEIGHT = A4_HEIGHT_PX - PAGE_PADDING;
+
+    let currentPage: InvoiceSession[] = [];
+    let currentHeight = 0;
+
+    for (const session of this.sessions) {
+      const sessionHeight = this.getEstimatedHeight(session);
+
+      if (currentHeight + sessionHeight > MAX_CONTENT_HEIGHT && currentPage.length > 0) {
+        this.computedPages.push([...currentPage]);
+        currentPage = [session];
+        currentHeight = sessionHeight;
+      } else {
+        currentPage.push(session);
+        currentHeight += sessionHeight;
+      }
+    }
+
+    if (currentPage.length > 0) {
+      this.computedPages.push(currentPage);
+    }
   }
 
   // --- Rename ---
   getDisplayName(id: string, fallback: any): string {
-    return this.customNames[id] || (typeof fallback === 'string' ? fallback : String(fallback));
+    return this.customNames[id] || (typeof fallback === 'string' ? fallback : String(fallback || ''));
   }
   startRename(id: string, event: Event) {
     event.stopPropagation();
@@ -197,6 +357,10 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   confirmRename(id: string, value: string) {
     if (value.trim()) this.customNames[id] = value.trim();
     this.editingNameId = null;
+  }
+
+  isString(val: any): boolean {
+    return typeof val === 'string';
   }
 
   // --- Getters ---
@@ -241,6 +405,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this._history.push(JSON.parse(JSON.stringify(this.sessions)));
     this._redoStack = []; // clear redo on new action
     if (this._history.length > 50) this._history.shift(); // cap at 50
+    this.paginate();
   }
   undo() {
     if (!this.canUndo) return;
@@ -248,6 +413,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.sessions = this._history.pop()!;
     this.selectedSessionId = null;
     this.selectedColumnId = null;
+    this.paginate();
   }
   redo() {
     if (!this.canRedo) return;
@@ -255,6 +421,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.sessions = this._redoStack.pop()!;
     this.selectedSessionId = null;
     this.selectedColumnId = null;
+    this.paginate();
   }
 
   // --- Session Management ---
@@ -280,10 +447,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       height: 120
     };
     this.sessions.push(newRow);
+    this.paginate();
     this.expandedRows[rowId] = true;
     this.showLayoutPicker = false;
     this.selectedSessionId = rowId;
-    this.toast.success(`Added ${colCount}-column layout row`);
+    this.toast.success(`${colCount}-column layout row created!`);
   }
 
   // Select a column and open inspector (used by empty-column + button)
@@ -297,7 +465,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
 
   addSession(type: 'header' | 'billed-to' | 'items' | 'tax' | 'note' | 'custom' | 'line' | 'table-custom' | 'field-group' | 'heading' | 'paragraph' | 'image' | 'data-field' | 'spacer') {
     if (!this.selectedColumnId && this.sessions.length > 0) {
-      this.toast.warning('Please select a layout column on the canvas first');
+      this.toast.warning('Select a column on the canvas first!');
       return;
     }
     this.snapshot();
@@ -327,9 +495,16 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     this.selectedSessionId = newSession.id;
     this.isSaved = false;
+    this.paginate();
   }
 
   removeSession(id: string) {
+    this.sessionToDelete = id;
+  }
+
+  onConfirmDelete() {
+    if (!this.sessionToDelete) return;
+    const id = this.sessionToDelete;
     this.snapshot();
     const removeRecursive = (list: InvoiceSession[]) => {
       const idx = list.findIndex(s => s.id === id);
@@ -343,14 +518,22 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       return false;
     };
     removeRecursive(this.sessions);
+    this.paginate();
     this.selectedSessionId = null;
     this.selectedColumnId = null;
     this.isSaved = false;
+    this.sessionToDelete = null;
+    this.toast.success('Element removed');
+  }
+
+  onCancelDelete() {
+    this.sessionToDelete = null;
   }
 
   updateProperty(session: InvoiceSession, prop: string, value: any) {
     (session as any)[prop] = value;
     this.isSaved = false;
+    this.paginate();
   }
 
   updateColumnWidth(colId: string, newWidth: number) {
@@ -446,13 +629,15 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       case 'heading': return 'New Heading';
       case 'paragraph': return 'Enter your paragraph text here...';
       case 'image': return '';
-      case 'data-field': return 'invoiceNo';
+      case 'data-field': return { field: 'invoiceNo', label: '' };
+      case 'line': return { lineCount: 1, lineGap: 4 };
       case 'spacer': return null;
       default: return '';
     }
   }
 
-  getDataFieldValue(field: string): string {
+  getDataFieldValue(fieldOrObj: any): string {
+    const field = (typeof fieldOrObj === 'object') ? fieldOrObj.field : fieldOrObj;
     switch(field) {
       case 'invoiceNo': return this.invoiceNo;
       case 'date': return this.invoiceDate;
@@ -464,12 +649,64 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   onSessionImageUpload(event: any, session: InvoiceSession) {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => { session.content = e.target.result; this.isSaved = false; };
-      reader.readAsDataURL(file);
+    if (event.target.files && event.target.files.length > 0) {
+      this.imageChangedEvent = event;
+      this.cropperRound = false;
+      this.cropperTarget = session;
+      this.showCropper = true;
     }
+  }
+
+  onLogoUpload(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.imageChangedEvent = event;
+      this.cropperRound = false;
+      this.cropperTarget = 'logo';
+      this.showCropper = true;
+    }
+  }
+
+  onPageBgUpload(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.imageChangedEvent = event;
+      this.cropperRound = false;
+      this.cropperTarget = 'pageBg';
+      this.showCropper = true;
+    }
+  }
+
+  async handleCroppedImage(blob: Blob) {
+    if (!this.currentUser) return;
+    this.showCropper = false;
+    
+    // Generate temporary preview URL
+    const tempUrl = URL.createObjectURL(blob);
+    
+    // Identify target ID
+    let targetId = '';
+    if (this.cropperTarget === 'logo') {
+      targetId = 'logo';
+      const header = this.findSessionRecursive(this.sessions, 'header');
+      if (header) {
+        header.content = { ...header.content, customLogo: tempUrl };
+      }
+    } else if (this.cropperTarget === 'pageBg') {
+      targetId = 'pageBg';
+      this.theme.pageBgImage = tempUrl;
+    } else if (this.cropperTarget && typeof this.cropperTarget !== 'string') {
+      targetId = this.cropperTarget.id;
+      this.cropperTarget.content = tempUrl;
+    }
+
+    if (targetId) {
+      // Store blob for later upload
+      this.pendingUploads.set(targetId, blob);
+    }
+
+    this.isSaved = false;
+    this.imageChangedEvent = '';
+    this.cropperTarget = null;
+    this.paginate();
   }
 
   ngAfterViewInit() {
@@ -479,6 +716,21 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   @HostListener('window:resize')
   onResize() {
     this.fitToScreen();
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    // Only trigger if 'Delete' is pressed and something is selected
+    if (event.key === 'Delete' && this.selectedSessionId) {
+      const target = event.target as HTMLElement;
+      // Safety: Don't delete if the user is currently typing in a field
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
+      
+      if (!isInput) {
+        event.preventDefault();
+        this.removeSession(this.selectedSessionId);
+      }
+    }
   }
 
   fitToScreen() {
@@ -511,41 +763,169 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   // --- Actions ---
-  generateInvoiceNumber() {
+  generateInvoiceNumber(): string {
+    const settings = this.currentUser?.invoiceSettings;
+    if (settings && settings.useCustomFormat) {
+      const numStr = (settings.nextNumber + '').padStart(settings.padding, '0');
+      return `${settings.prefix}${numStr}`;
+    }
     const now = new Date();
     return `INV-${now.getTime()}`;
   }
 
   async saveDraft() {
     if (!this.currentUser) return;
-    const billedTo = this.findSessionRecursive(this.sessions, 'billed-to');
-    const record: InvoiceRecord = {
-      invoiceNo: this.invoiceNo,
-      dateCreated: this.invoiceDate,
-      customerName: billedTo?.content.name || 'Unknown',
-      totalAmount: this.grandTotal,
-      userId: this.currentUser.id,
-      fullData: { sessions: this.sessions, theme: this.theme }
-    };
+    if (this.isPremiumRestricted) {
+      this.toast.warning('Payment required to save or export this premium template.');
+      return;
+    }
+    
     this.isSaving = true;
     try {
-      if (this.editId) await this.invoiceService.updateInvoice(this.editId, record);
-      else await this.invoiceService.saveInvoice(this.currentUser.id, record);
-      this.toast.success('Draft saved!');
-    } catch (e) { this.toast.error('Save failed'); }
-    finally { this.isSaving = false; }
+      // 1. Process pending uploads first
+      if (this.pendingUploads.size > 0) {
+        await this.processPendingUploads();
+      }
+
+      const billedTo = this.findSessionRecursive(this.sessions, 'billed-to');
+      let finalInvoiceNo = this.invoiceNo;
+      const settings = this.currentUser.invoiceSettings;
+      
+      // NEW: Intelligent numbering logic for NEW invoices
+      if (!this.editId && settings && settings.useCustomFormat) {
+        let isUnique = await this.invoiceService.isInvoiceNumberUnique(this.currentUser.id, finalInvoiceNo);
+        let safetyCounter = 0;
+        
+        // If the number exists (maybe it was used elsewhere), keep incrementing until we find a gap
+        while (!isUnique && safetyCounter < 10) {
+          settings.nextNumber++;
+          finalInvoiceNo = this.generateInvoiceNumber();
+          isUnique = await this.invoiceService.isInvoiceNumberUnique(this.currentUser.id, finalInvoiceNo);
+          safetyCounter++;
+        }
+        this.invoiceNo = finalInvoiceNo;
+      }
+
+      const record: InvoiceRecord = {
+        invoiceNo: finalInvoiceNo,
+        dateCreated: this.invoiceDate,
+        customerName: billedTo?.content.name || 'Unknown',
+        totalAmount: this.grandTotal,
+        userId: this.currentUser.id,
+        isDraft: true, // SAVE AS DRAFT
+        fullData: { sessions: this.sessions, theme: this.theme }
+      };
+
+      if (this.editId) {
+        await this.invoiceService.updateInvoice(this.editId, JSON.parse(JSON.stringify(record)));
+      } else {
+        await this.invoiceService.saveInvoice(this.currentUser.id, JSON.parse(JSON.stringify(record)));
+        
+        // After successful save of a NEW invoice, increment the global counter in user profile
+        if (settings && settings.useCustomFormat) {
+          await this.auth.updateProfile(this.currentUser.id, {
+            invoiceSettings: {
+              ...settings,
+              nextNumber: settings.nextNumber + 1
+            }
+          });
+        }
+      }
+      
+      this.isSaved = true;
+      this.toast.success(ToasterMessages.invoices.saveSuccess);
+    } catch (e) { 
+      console.error(e);
+      this.toast.error(ToasterMessages.invoices.saveFailed); 
+    } finally { 
+      this.isSaving = false; 
+    }
+  }
+
+  private async processPendingUploads() {
+    this.toast.info('Uploading images...');
+    
+    for (const [id, blob] of this.pendingUploads.entries()) {
+      try {
+        const permanentUrl = await this.auth.uploadImage(blob, `invoices/${this.currentUser.id}`);
+        
+        // Replace temporary URL in sessions/logo
+        if (id === 'logo') {
+          const header = this.findSessionRecursive(this.sessions, 'header');
+          if (header) {
+            // Revoke old temp URL to free memory
+            if (header.content.customLogo?.startsWith('blob:')) {
+              URL.revokeObjectURL(header.content.customLogo);
+            }
+            header.content.customLogo = permanentUrl;
+          }
+        } else if (id === 'pageBg') {
+          // Revoke old temp URL
+          if (this.theme.pageBgImage?.startsWith('blob:')) {
+            URL.revokeObjectURL(this.theme.pageBgImage);
+          }
+          this.theme.pageBgImage = permanentUrl;
+        } else {
+          const element = this.findSessionByIdRecursive(this.sessions, id);
+          if (element) {
+            // Revoke old temp URL
+            if (element.content?.startsWith('blob:')) {
+              URL.revokeObjectURL(element.content);
+            }
+            element.content = permanentUrl;
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to upload image ${id}:`, err);
+        throw new Error('One or more images failed to upload. Save cancelled.');
+      }
+    }
+    
+    this.pendingUploads.clear();
+  }
+
+  // State for Step 3 modal
+  showSaveTemplateModal = false;
+  isPremiumRestricted = false; // NEW: Lock for premium templates
+
+  openSaveTemplateModal() {
+    if (!this.currentUser) return;
+    this.showSaveTemplateModal = true;
+  }
+
+  async handleSaveTemplate(data: { name: string, isPublic: boolean, isPremium: boolean }) {
+    this.showSaveTemplateModal = false;
+    if (!this.currentUser) return;
+    
+    this.isSaving = true;
+    try {
+      const template: InvoiceTemplate = {
+        name: data.name,
+        userId: this.currentUser.id,
+        isPredefined: false, // We use visibility now
+        visibility: data.isPublic ? 'public' : 'private',
+        isPremium: data.isPremium,
+        fullData: { 
+          sessions: JSON.parse(JSON.stringify(this.sessions)), 
+          theme: { ...this.theme } 
+        }
+      };
+
+      // If we were editing a template we OWN, we should update instead of creating new
+      // However, the user request says "save it as their template", implying a new one.
+      // But if an Admin is editing a public one, they might want to update.
+      // For now, let's keep it simple: create new template.
+      await this.invoiceService.saveTemplate(template);
+      this.toast.success(ToasterMessages.invoices.templateSaveSuccess);
+    } catch (e) {
+      this.toast.error('Failed to save template');
+    } finally {
+      this.isSaving = false;
+    }
   }
 
   async saveAsTemplate() {
-     if (!this.currentUser) return;
-     const name = prompt('Template Name:', 'My Template');
-     if (!name) return;
-     const template: InvoiceTemplate = {
-       name, userId: this.currentUser.id, isPredefined: this.currentUser.role === 'ADMIN',
-       fullData: { sessions: JSON.parse(JSON.stringify(this.sessions)), theme: { ...this.theme } }
-     };
-     await this.invoiceService.saveTemplate(template);
-     this.toast.success('Template saved!');
+     this.openSaveTemplateModal();
   }
 
   printInvoice() { window.print(); }
@@ -615,10 +995,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
           filename: `${this.invoiceNo}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: 'css' }
         };
         html2pdf().set(opt).from(element).save();
       }
-    } catch (e) { this.toast.error('PDF generation failed'); }
+    } catch (e) { this.toast.error('PDF generation failed. Try again.'); }
   }
 }

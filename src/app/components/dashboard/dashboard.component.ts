@@ -7,12 +7,16 @@ import { InvoiceService, InvoiceRecord } from '../../services/invoice.service';
 import { Icons } from '../../utils/icons.util';
 import { ToastService } from '../../services/toast.service';
 import { SearchService } from '../../services/search.service';
+import { ToasterMessages } from '../../utils/messages.util';
+import { ImageCropperModalComponent } from '../shared/image-cropper/image-cropper.component';
 import { Subscription } from 'rxjs';
+
+import { InvoiceThumbnailComponent } from '../shared/invoice-thumbnail/invoice-thumbnail.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ImageCropperModalComponent, InvoiceThumbnailComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
@@ -20,13 +24,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   icons = Icons;
   invoices: InvoiceRecord[] = [];
   viewMode: 'grid' | 'list' = 'grid'; // Grid is now default
-  activeTab: 'documents' | 'profile' = 'documents'; // Initialized here for type, but reset in ngOnInit
+  activeTab: 'documents' | 'profile' = 'documents'; 
+  activeDocSection: 'all' | 'drafts' = 'all'; // NEW: Toggle between finalized and drafts
 
   // Profile Data
   currentUser: User | null = null;
   profileForm = { name: '', companyName: '', companyAddress: '', companyLogoUrl: '' };
   loading = false;
   uploading = false;
+  
+  // Cropper state
+  showCropper = false;
+  imageChangedEvent: any = '';
  
   // Stats
   get totalRevenue() {
@@ -117,9 +126,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
   }
 
+  get finalizedInvoices() {
+    return this.filteredInvoices.filter(i => !i.isDraft);
+  }
+
+  get draftInvoices() {
+    return this.filteredInvoices.filter(i => i.isDraft);
+  }
+
   get pagedInvoices() {
     const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredInvoices.slice(start, start + this.pageSize);
+    return this.finalizedInvoices.slice(start, start + this.pageSize);
   }
 
   get totalPages() {
@@ -146,7 +163,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   createNew() {
-    this.router.navigate(['/editor']);
+    this.router.navigate(['/editor'], { queryParams: { fresh: 'true' } });
   }
 
   openInvoice(id?: string) {
@@ -167,29 +184,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
         await this.invoiceService.deleteInvoice(id);
-        this.toast.success('Invoice deleted successfully');
+        this.toast.success(ToasterMessages.invoices.deleteSuccess);
         this.invoices = this.invoices.filter(i => i.id !== id);
       } catch (err) {
-        this.toast.error('Failed to delete invoice');
+        this.toast.error(ToasterMessages.invoices.deleteFailed);
       }
     }
   }
 
-  // Profile Actions (Requested integration)
-  async onFileSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (!file || !this.currentUser) return;
+  onFileSelected(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.imageChangedEvent = event;
+      this.showCropper = true;
+    }
+  }
 
+  async onImageCropped(blob: Blob) {
+    if (!this.currentUser) return;
+    this.showCropper = false;
     this.uploading = true;
+    
     try {
+      const file = new File([blob], 'logo.png', { type: 'image/png' });
       const url = await this.auth.uploadLogo(file, this.currentUser.id);
       this.profileForm.companyLogoUrl = url;
-      this.toast.success('Logo uploaded successfully!');
+      this.toast.success(ToasterMessages.profile.logoSuccess);
     } catch (error) {
       console.error(error);
-      this.toast.error('Failed to upload logo.');
+      this.toast.error(ToasterMessages.profile.logoFailed);
     } finally {
       this.uploading = false;
+      this.imageChangedEvent = '';
     }
   }
 
@@ -204,10 +229,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         companyAddress: this.profileForm.companyAddress,
         companyLogoUrl: this.profileForm.companyLogoUrl
       });
-      this.toast.success('Profile updated successfully!');
+      this.toast.success(ToasterMessages.profile.updateSuccess);
     } catch (error) {
       console.error(error);
-      this.toast.error('Failed to update profile.');
+      this.toast.error(ToasterMessages.profile.updateFailed);
     } finally {
       this.loading = false;
     }

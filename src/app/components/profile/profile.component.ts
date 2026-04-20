@@ -4,18 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { Icons } from '../../utils/icons.util';
+import { ToasterMessages } from '../../utils/messages.util';
+import { ImageCropperModalComponent } from '../shared/image-cropper/image-cropper.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ImageCropperModalComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
 })
 export class ProfileComponent implements OnInit {
   icons = Icons;
   currentUser: User | null = null;
-  
+
   profileForm = {
     name: '',
     companyName: '',
@@ -27,15 +29,25 @@ export class ProfileComponent implements OnInit {
   };
 
   passwordForm = {
+    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   };
-  
+
+  showPasswordModal = false;
+
   loading = false;
   uploading = false;
   passwordLoading = false;
 
-  constructor(private authService: AuthService, private toast: ToastService) {}
+  // Cropper state
+  showCropper = false;
+  imageChangedEvent: any = '';
+
+  constructor(
+    private authService: AuthService, 
+    private toast: ToastService
+  ) { }
 
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
@@ -54,27 +66,36 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  async onFileSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (!file || !this.currentUser) return;
+  onFileSelected(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.imageChangedEvent = event;
+      this.showCropper = true;
+    }
+  }
 
+  async onImageCropped(blob: Blob) {
+    if (!this.currentUser) return;
+    this.showCropper = false;
     this.uploading = true;
+    
     try {
+      const file = new File([blob], 'logo.png', { type: 'image/png' });
       const url = await this.authService.uploadLogo(file, this.currentUser.id);
       this.profileForm.companyLogoUrl = url;
-      this.toast.success('Professional logo uploaded!');
+      this.toast.success(ToasterMessages.profile.logoSuccess);
     } catch (error) {
       console.error(error);
-      this.toast.error('Logo upload failed.');
+      this.toast.error(ToasterMessages.profile.logoFailed);
     } finally {
       this.uploading = false;
+      this.imageChangedEvent = '';
     }
   }
 
   async saveProfile() {
     if (!this.currentUser) return;
     if (!this.profileForm.name.trim()) {
-      this.toast.error('Name cannot be empty.');
+      this.toast.error(ToasterMessages.profile.nameRequired);
       return;
     }
 
@@ -89,40 +110,56 @@ export class ProfileComponent implements OnInit {
         taxId: this.profileForm.taxId,
         website: this.profileForm.website
       });
-      this.toast.success('Account info updated successfully!');
+      this.toast.success(ToasterMessages.profile.updateSuccess);
     } catch (error) {
       console.error(error);
-      this.toast.error('Failed to update account.');
+      this.toast.error(ToasterMessages.profile.updateFailed);
     } finally {
       this.loading = false;
     }
   }
 
+  openPasswordModal() {
+    this.passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+    this.showPasswordModal = true;
+  }
+
+  closePasswordModal() {
+    this.showPasswordModal = false;
+  }
+
   async changePassword() {
+    if (!this.passwordForm.currentPassword) {
+      this.toast.error(ToasterMessages.profile.passwordRequired);
+      return;
+    }
     if (!this.passwordForm.newPassword) {
-      this.toast.error('Please enter a new password.');
+      this.toast.error(ToasterMessages.profile.newPasswordRequired);
       return;
     }
     if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
-      this.toast.error('Passwords do not match.');
+      this.toast.error(ToasterMessages.profile.passwordsMismatch);
       return;
     }
     if (this.passwordForm.newPassword.length < 6) {
-      this.toast.error('Password must be at least 6 characters.');
+      this.toast.error(ToasterMessages.profile.passwordTooShort);
       return;
     }
 
     this.passwordLoading = true;
     try {
+      await this.authService.reauthenticate(this.passwordForm.currentPassword);
       await this.authService.changeUserPassword(this.passwordForm.newPassword);
-      this.toast.success('Password updated successfully!');
-      this.passwordForm = { newPassword: '', confirmPassword: '' };
+      this.toast.success(ToasterMessages.profile.passwordUpdateSuccess);
+      this.closePasswordModal();
     } catch (error: any) {
       console.error(error);
-      if (error.code === 'auth/requires-recent-login') {
-        this.toast.error('For security, please log out and log back in before changing your password.');
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        this.toast.error(ToasterMessages.profile.wrongCurrentPassword);
+      } else if (error.code === 'auth/requires-recent-login') {
+        this.toast.error(ToasterMessages.profile.requiresRecentLogin);
       } else {
-        this.toast.error('Failed to update password. Please try again.');
+        this.toast.error(ToasterMessages.profile.genericPasswordError);
       }
     } finally {
       this.passwordLoading = false;

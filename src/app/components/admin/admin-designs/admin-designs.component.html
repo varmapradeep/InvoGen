@@ -6,6 +6,10 @@
       </svg>
       <h2>Invoice Design Center</h2>
     </div>
+    <div class="header-tabs">
+      <button [class.active]="activeSection === 'templates'" (click)="activeSection = 'templates'">Saved Designs</button>
+      <button [class.active]="activeSection === 'drafts'" (click)="activeSection = 'drafts'">My Drafts</button>
+    </div>
     <div class="header-actions">
       <button class="btn-primary hide-on-mobile" (click)="createTemplate()">
         <span class="plus">+</span> New Design
@@ -13,7 +17,7 @@
     </div>
   </div>
 
-  <div class="designs-grid-container">
+  <div class="designs-grid-container" *ngIf="activeSection === 'templates'">
     <!-- Create New Card -->
     <div class="design-card create-new" (click)="createTemplate()">
       <div class="create-content">
@@ -25,15 +29,21 @@
     <!-- Template Cards -->
     <div class="design-card animated-up" *ngFor="let template of templates" (click)="editTemplate(template)">
       <div class="design-preview" [style.border-top-color]="template.fullData.theme.primaryColor">
-        <!-- Professional Mockup -->
-        <div class="preview-mockup">
-          <div class="mock-header" [style.background]="template.fullData.theme.primaryColor + '15'"></div>
-          <div class="mock-line short"></div>
-          <div class="mock-line"></div>
-          <div class="mock-table">
-            <div class="h"></div>
-            <div class="r"></div>
-            <div class="r"></div>
+        <!-- Realistic Live Preview -->
+        <div class="thumbnail-container">
+           <app-invoice-thumbnail [fullData]="template.fullData"></app-invoice-thumbnail>
+        </div>
+
+        <!-- Badges -->
+        <div class="card-badges">
+          <div class="icon-badge premium" *ngIf="template.isPremium" title="Premium Design">
+            <svg><use [attr.href]="icons.award"></use></svg>
+          </div>
+          <div class="icon-badge public" *ngIf="template.visibility === 'public'" title="Public Design">
+            <svg><use [attr.href]="icons.globe"></use></svg>
+          </div>
+          <div class="icon-badge private" *ngIf="template.visibility === 'private'" title="Private Design">
+            <svg><use [attr.href]="icons.lock"></use></svg>
           </div>
         </div>
 
@@ -44,15 +54,48 @@
           </svg>
         </button>
 
-        <div class="card-overlay">
-          <span>Launch Editor</span>
-        </div>
       </div>
       <div class="design-info">
         <span class="design-name">{{ template.name }}</span>
-        <span class="design-meta">Global System Template</span>
+        <span class="design-meta">{{ template.isPredefined ? 'Global Master Design' : 'Custom Template' }}</span>
       </div>
     </div>
+  </div>
+
+  <div class="designs-grid-container" *ngIf="activeSection === 'drafts'">
+    <div class="design-card animated-up" *ngFor="let draft of drafts" (click)="openDraft(draft)">
+      <div class="design-preview" [style.border-top-color]="draft.fullData?.theme?.primaryColor || '#7645c0'">
+        <!-- Realistic Live Preview -->
+        <div class="thumbnail-container">
+           <app-invoice-thumbnail [fullData]="draft.fullData"></app-invoice-thumbnail>
+        </div>
+        
+        <div class="card-badges">
+          <div class="icon-badge draft" title="Draft Invoice">
+            <svg><use [attr.href]="icons.edit"></use></svg>
+          </div>
+        </div>
+
+        <button class="btn-delete-card" (click)="$event.stopPropagation(); deleteDraft(draft.id)"
+          title="Delete Draft">
+          <svg>
+            <use [attr.href]="icons.delete"></use>
+          </svg>
+        </button>
+
+      </div>
+      <div class="design-info">
+        <span class="design-name">{{ draft.customerName }}</span>
+        <span class="design-meta">
+          {{ draft.invoiceNo }} • {{ draft.dateCreated | date:'shortDate' }} • 
+          <strong>Rs. {{ draft.totalAmount | number:'1.2-2' }}</strong>
+        </span>
+      </div>
+    </div>
+    
+    <!-- <div class="empty-section" *ngIf="drafts.length === 0">
+       <p>No unfinished drafts. Click "New Design" to start something fresh!</p>
+    </div> -->
   </div>
   <!-- 
   <div class="empty-state" *ngIf="!loading && templates.length === 0">
@@ -62,4 +105,14 @@
   <div class="loading-state" *ngIf="loading">
     <p>Loading design records...</p>
   </div> -->
+
 </div>
+
+<!-- Custom Confirmation Modal -->
+<app-confirm-modal 
+  *ngIf="showConfirmModal"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  (confirmed)="onConfirmDelete()"
+  (canceled)="closeConfirm()">
+</app-confirm-modal>

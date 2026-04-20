@@ -8,6 +8,7 @@ import { ThemeService, Theme } from './services/theme.service';
 import { InvoiceService } from './services/invoice.service';
 import { SearchService } from './services/search.service';
 import { LayoutService } from './services/layout.service';
+import { InactivityService } from './services/inactivity.service';
 import { Icons } from './utils/icons.util';
 import { ToastComponent } from './components/toast/toast.component';
 
@@ -22,7 +23,7 @@ export class AppComponent implements OnInit {
   icons = Icons;
   isSidebarCollapsed = false;
   isMobileMenuOpen = false;
-  isLoginPage = false;
+  isStandalonePage = false;
   isInitializing = true; // New state to prevent flicker
   currentYear = new Date().getFullYear();
   currentUser: any = null;
@@ -58,12 +59,19 @@ export class AppComponent implements OnInit {
      public themeService: ThemeService,
      private invoiceService: InvoiceService,
      private searchService: SearchService,
-     private layoutService: LayoutService
+     private layoutService: LayoutService,
+     private inactivity: InactivityService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      this.isLoginPage = event.urlAfterRedirects === '/login' || event.urlAfterRedirects === '/';
+      const url = event.urlAfterRedirects;
+      // List of base paths that require the dashboard shell
+      const shellPaths = ['/dashboard', '/designs', '/documents', '/admin', '/editor', '/viewer', '/settings', '/profile'];
+      
+      // If it doesn't start with any shell path, it's a standalone page (Landing, Login, or Error pages)
+      this.isStandalonePage = !shellPaths.some(p => url.startsWith(p)) || url === '/login' || url === '/';
+      
       this.isMobileMenuOpen = false;
     });
 
@@ -77,6 +85,9 @@ export class AppComponent implements OnInit {
       this.currentUser = user;
       if (user) {
         this.loadData(user.id);
+        this.inactivity.startMonitoring();
+      } else {
+        this.inactivity.stopMonitoring();
       }
     });
 
