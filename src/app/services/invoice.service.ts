@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, orderBy, limit } from '@angular/fire/firestore';
 import { MASTER_DESIGNS } from '../utils/master-templates.util';
 
 export interface InvoiceSession {
@@ -75,13 +75,18 @@ export class InvoiceService {
 
   public async getLatestDraft(userId: string): Promise<InvoiceRecord | null> {
     const invoicesRef = collection(this.firestore, 'invoices');
-    const q = query(invoicesRef, where('userId', '==', userId), where('isDraft', '==', true));
+    // Use server-side ordering and limit to avoid fetching all drafts into memory
+    const q = query(
+      invoicesRef,
+      where('userId', '==', userId),
+      where('isDraft', '==', true),
+      orderBy('dateCreated', 'desc'),
+      limit(1)
+    );
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return null;
-    
-    // Sort by most recent in memory (or use server sort if indexed)
-    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InvoiceRecord));
-    return docs.sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime())[0];
+    const d = querySnapshot.docs[0];
+    return { id: d.id, ...d.data() } as InvoiceRecord;
   }
 
   public async getInvoices(userId: string): Promise<InvoiceRecord[]> {

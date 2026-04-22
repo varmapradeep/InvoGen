@@ -3,15 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../../services/auth.service';
 import { ToastService } from '../../../services/toast.service';
-import { Firestore, doc, updateDoc, deleteDoc } from '@angular/fire/firestore';
 import { Icons } from '../../../utils/icons.util';
 import { Router } from '@angular/router';
 import { ToasterMessages } from '../../../utils/messages.util';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'
 })
@@ -29,10 +29,15 @@ export class AdminUserManagementComponent implements OnInit {
   editingUser: User | null = null;
   editForm = { name: '', email: '', role: 'USER' as 'ADMIN' | 'USER', status: 'ACTIVE' as 'ACTIVE' | 'PENDING' };
 
+  // Confirm modal state
+  showConfirmModal = false;
+  confirmTitle = '';
+  confirmMessage = '';
+  pendingConfirmAction: (() => Promise<void>) | null = null;
+
   constructor(
     private authService: AuthService,
     private toast: ToastService,
-    private firestore: Firestore,
     private router: Router
   ) {}
 
@@ -45,7 +50,7 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   get pagedUsers(): User[] {
-    let filtered = [...this.users]; // Cloned to avoid direct mutation of source during sorting/filtering
+    let filtered = [...this.users];
 
     if (this.searchQuery) {
       const q = this.searchQuery.toLowerCase();
@@ -67,12 +72,17 @@ export class AdminUserManagementComponent implements OnInit {
       return 0;
     });
 
+    // Store filtered length for totalPages calculation
+    this._filteredCount = sorted.length;
+
     const start = (this.currentPage - 1) * this.pageSize;
     return sorted.slice(start, start + this.pageSize);
   }
 
+  private _filteredCount = 0;
+
   get totalPages(): number {
-    return Math.ceil(this.users.length / this.pageSize) || 1;
+    return Math.ceil(this._filteredCount / this.pageSize) || 1;
   }
 
   get filteredPages(): number[] {
@@ -101,24 +111,38 @@ export class AdminUserManagementComponent implements OnInit {
     const user = this.users.find(u => u.id === userId);
     if (user?.role === 'ADMIN') return;
 
-    const userDocRef = doc(this.firestore, `users/${userId}`);
-    await updateDoc(userDocRef, { status: 'PENDING' });
+    await this.authService.unapproveUser(userId);
     this.toast.warning(ToasterMessages.admin.userRevoked);
     this.refreshUsers();
   }
 
-  async deleteUser(user: User) {
+  deleteUser(user: User) {
     if (user.role === 'ADMIN') return;
-    if (!confirm(`Delete ${user.name}?`)) return;
-    
-    try {
-      const userDocRef = doc(this.firestore, `users/${user.id}`);
-      await deleteDoc(userDocRef);
+    this.confirmTitle = 'Delete User';
+    this.confirmMessage = `Delete "${user.name}"? Their Firestore record will be removed. Note: Firebase Auth account requires a Cloud Function to fully delete.`;
+    this.pendingConfirmAction = async () => {
+      await this.authService.deleteUserFromFirestore(user.id);
       this.toast.success(ToasterMessages.admin.userDeleted);
       this.refreshUsers();
-    } catch (err) {
-      this.toast.error('Failed to delete');
+    };
+    this.showConfirmModal = true;
+  }
+
+  async onConfirmAction() {
+    if (this.pendingConfirmAction) {
+      try {
+        await this.pendingConfirmAction();
+      } catch (err) {
+        this.toast.error('Operation failed.');
+      } finally {
+        this.closeConfirm();
+      }
     }
+  }
+
+  closeConfirm() {
+    this.showConfirmModal = false;
+    this.pendingConfirmAction = null;
   }
 
   openEdit(user: User) {
@@ -133,8 +157,7 @@ export class AdminUserManagementComponent implements OnInit {
   async saveEdit() {
     if (!this.editingUser) return;
     try {
-      const userDocRef = doc(this.firestore, `users/${this.editingUser.id}`);
-      await updateDoc(userDocRef, {
+      await this.authService.updateProfile(this.editingUser.id, {
         name: this.editForm.name,
         role: this.editForm.role,
         status: this.editForm.status

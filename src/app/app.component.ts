@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { filter } from 'rxjs/operators';
-import { AuthService } from './services/auth.service';
+import { AuthService, User } from './services/auth.service';
 import { ThemeService, Theme } from './services/theme.service';
 import { InvoiceService } from './services/invoice.service';
 import { SearchService } from './services/search.service';
@@ -26,7 +26,7 @@ export class AppComponent implements OnInit {
   isStandalonePage = false;
   isInitializing = true; // New state to prevent flicker
   currentYear = new Date().getFullYear();
-  currentUser: any = null;
+  currentUser: User | null = null;
   currentTheme: Theme = 'dark';
 
   get logoLink(): string {
@@ -130,8 +130,7 @@ export class AppComponent implements OnInit {
     this.themeService.toggleTheme(userId);
   }
 
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+  async logout(): Promise<void> {
+    await this.authService.logout();
   }
 }

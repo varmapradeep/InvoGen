@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, User } from '../../services/auth.service';
 import { InvoiceService, InvoiceRecord, InvoiceSession, InvoiceTheme, InvoiceTemplate } from '../../services/invoice.service';
 import { LayoutService } from '../../services/layout.service';
 import { Icons } from '../../utils/icons.util';
@@ -48,7 +48,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   isSaved = false;
   isTemplateMode = false;
   templateId: string | null = null;
-  currentUser: any = null;
+  currentUser: User | null = null;
   isUploading = false;
 
   // Cropper state
@@ -226,6 +226,14 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
        this.sessions = JSON.parse(JSON.stringify(template.fullData.sessions));
        this.theme = { ...template.fullData.theme };
        
+       // If this is a Premium template and the user is not ADMIN → restrict
+       if (template.isPremium && this.currentUser?.role !== 'ADMIN') {
+         this.isPremiumRestricted = true;
+         this.toast.warning('This is a premium template. Upgrade to save or export.');
+       } else {
+         this.isPremiumRestricted = false;
+       }
+
        // Clone Logic: If this is a Public/Admin template AND I am not the owner, clear IDs
        if (template.userId !== this.currentUser?.id) {
           this.editId = null; 
@@ -847,7 +855,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     
     for (const [id, blob] of this.pendingUploads.entries()) {
       try {
-        const permanentUrl = await this.auth.uploadImage(blob, `invoices/${this.currentUser.id}`);
+        const permanentUrl = await this.auth.uploadImage(blob, `invoices/${this.currentUser!.id}`);
         
         // Replace temporary URL in sessions/logo
         if (id === 'logo') {
@@ -899,10 +907,10 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     
     this.isSaving = true;
     try {
-      const template: InvoiceTemplate = {
+      const templateData: Omit<InvoiceTemplate, 'id'> = {
         name: data.name,
         userId: this.currentUser.id,
-        isPredefined: false, // We use visibility now
+        isPredefined: false,
         visibility: data.isPublic ? 'public' : 'private',
         isPremium: data.isPremium,
         fullData: { 
@@ -911,12 +919,14 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
         }
       };
 
-      // If we were editing a template we OWN, we should update instead of creating new
-      // However, the user request says "save it as their template", implying a new one.
-      // But if an Admin is editing a public one, they might want to update.
-      // For now, let's keep it simple: create new template.
-      await this.invoiceService.saveTemplate(template);
-      this.toast.success(ToasterMessages.invoices.templateSaveSuccess);
+      // If an existing template ID is set and the user owns it → UPDATE instead of creating a duplicate
+      if (this.templateId) {
+        await this.invoiceService.updateTemplate(this.templateId, templateData);
+        this.toast.success('Template updated successfully!');
+      } else {
+        await this.invoiceService.saveTemplate({ ...templateData });
+        this.toast.success('Template saved successfully!');
+      }
     } catch (e) {
       this.toast.error('Failed to save template');
     } finally {
@@ -986,11 +996,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
 
   async downloadPDF() {
     try {
-      // @ts-ignore
-      const html2pdf = (await import('html2pdf.js')).default;
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = (html2pdfModule as any).default ?? html2pdfModule;
       const element = document.getElementById('invoiceDoc');
       if (element) {
-        const opt: any = {
+        const opt = {
           margin: 0,
           filename: `${this.invoiceNo}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },

@@ -134,6 +134,7 @@
 
                 <span class="t-badge col-badge">{{ col.width | number:'1.0-0' }}%</span>
                 <span class="t-badge el-count" *ngIf="col.sessions?.length">{{ col.sessions!.length }} el</span>
+                <button class="t-del" (click)="removeSession(col.id); $event.stopPropagation()">×</button>
               </div>
 
               <!-- Elements — connected to ALL column drop lists for cross-column/row DnD -->

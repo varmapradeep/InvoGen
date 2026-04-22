@@ -43,3 +43,4 @@ Thumbs.db
 
 # Credentials and environment-specific config
 src/environments/environment.ts
+src/environments/environment.prod.ts

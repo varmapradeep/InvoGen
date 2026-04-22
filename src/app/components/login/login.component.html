@@ -74,9 +74,10 @@
       </div>
 
       <div class="actions">
-        <button type="button" class="btn-google" (click)="loginWithGoogle()">
+        <button type="button" class="btn-google" (click)="loginWithGoogle()" [disabled]="loading">
           <svg style="width:18px;height:18px"><use [attr.href]="icons.google"></use></svg>
-          Sign In with Google
+          <span *ngIf="!loading">Continue with Google</span>
+          <span *ngIf="loading">Connecting...</span>
         </button>
       </div>
 

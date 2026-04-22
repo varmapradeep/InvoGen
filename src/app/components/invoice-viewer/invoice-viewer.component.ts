@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, User } from '../../services/auth.service';
 import { InvoiceService, InvoiceRecord, InvoiceSession } from '../../services/invoice.service';
 
 @Component({
@@ -9,7 +9,7 @@ import { InvoiceService, InvoiceRecord, InvoiceSession } from '../../services/in
   standalone: true,
   imports: [CommonModule],
   templateUrl: './invoice-viewer.component.html',
-  styleUrl: '../invoice-editor/invoice-editor.component.scss' // Use Editor's premium styles
+  styleUrl: './invoice-viewer.component.scss'
 })
 export class InvoiceViewerComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -21,7 +21,7 @@ export class InvoiceViewerComponent implements OnInit {
   sessions: InvoiceSession[] = [];
   theme: any = { primaryColor: '#7c3aed' };
   
-  currentUser: any = null;
+  currentUser: User | null = null;
   loading = true;
 
   async ngOnInit() {

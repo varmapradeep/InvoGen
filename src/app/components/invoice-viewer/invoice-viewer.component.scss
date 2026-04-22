@@ -1,0 +1,294 @@
+/*
+ * Invoice Viewer Component Styles
+ * Scope: Read-only rendered invoice document.
+ * These are decoupled from the editor builder UI,
+ * but share the same invoice document rendering tokens.
+ */
+
+/* ============================================================
+   VIEWER WRAPPER
+   ============================================================ */
+.viewer-wrapper {
+  min-height: 100vh;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 64px;
+  font-family: 'Inter', sans-serif;
+}
+
+.viewer-toolbar {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .viewer-brand {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.3px;
+    opacity: 0.6;
+  }
+
+  .viewer-actions {
+    display: flex;
+    gap: 10px;
+
+    button {
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border-color);
+      background: var(--card-surface);
+      color: var(--text-main);
+
+      &:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+      }
+
+      &.btn-pdf {
+        background: var(--accent-color);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+        &:hover {
+          filter: brightness(1.1);
+          color: #fff;
+          border-color: transparent;
+        }
+      }
+    }
+  }
+}
+
+.viewer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 15px;
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+/* ============================================================
+   INVOICE DOCUMENT (shared with editor preview output)
+   ============================================================ */
+.invoice-doc-outer {
+  width: 100%;
+  max-width: 860px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* A4 page */
+.invoice-page {
+  width: 794px;
+  min-height: 1122px;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  page-break-after: always;
+}
+
+/* ============================================================
+   LAYOUT ROWS & COLUMNS (mirrors editor preview)
+   ============================================================ */
+.layout-row-preview {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.layout-col-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   ELEMENT TYPES — Invoice Content Blocks
+   ============================================================ */
+.element-header-preview {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 0 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.element-billing-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 8px 0;
+
+  .billing-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .billing-label {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+
+  .billing-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .billing-address {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+}
+
+.element-items-preview {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+
+  thead tr th {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 10px 8px;
+    border-bottom: 2px solid;
+    color: #fff;
+    text-align: left;
+
+    &:last-child { text-align: right; }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+
+    td {
+      font-size: 13px;
+      padding: 10px 8px;
+      color: #1e293b;
+
+      &:last-child { text-align: right; }
+    }
+  }
+}
+
+.element-totals-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 8px 0;
+
+  .total-row {
+    display: flex;
+    gap: 32px;
+    font-size: 13px;
+    color: #475569;
+
+    .total-label { min-width: 100px; text-align: right; }
+    .total-value { min-width: 80px; text-align: right; font-weight: 600; }
+
+    &.grand {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 2px solid #0f172a;
+    }
+  }
+}
+
+.element-note-preview {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.6;
+  padding: 8px 0;
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.element-line-preview {
+  border: none;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 8px 0;
+}
+
+.element-spacer-preview {
+  display: block;
+}
+
+.element-image-preview {
+  max-width: 100%;
+  display: block;
+
+  img {
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+  }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  .viewer-toolbar { display: none !important; }
+  .viewer-wrapper { padding: 0; background: #fff; }
+  .invoice-page { box-shadow: none; width: 100%; min-height: auto; }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animated-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

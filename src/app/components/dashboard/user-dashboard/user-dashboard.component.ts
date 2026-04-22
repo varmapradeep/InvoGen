@@ -49,11 +49,15 @@ export class UserDashboardComponent implements OnInit, OnDestroy {
   }
 
   get totalRevenue() {
-    return this.invoices.reduce((sum: number, inv: InvoiceRecord) => sum + (inv.totalAmount || 0), 0);
+    // Only count finalized (non-draft) invoices for revenue display
+    return this.invoices
+      .filter((inv: InvoiceRecord) => !inv.isDraft)
+      .reduce((sum: number, inv: InvoiceRecord) => sum + (inv.totalAmount || 0), 0);
   }
   
   get invoiceCount() {
-    return this.invoices.length;
+    // Count finalized invoices only
+    return this.invoices.filter((inv: InvoiceRecord) => !inv.isDraft).length;
   }
 
   ngOnInit() {

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Auth, authState, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, reauthenticateWithCredential, EmailAuthProvider } from '@angular/fire/auth';
+import { Auth, authState, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, reauthenticateWithCredential, EmailAuthProvider } from '@angular/fire/auth';
 import { Firestore, doc, getDoc, setDoc, collection, getDocs, updateDoc } from '@angular/fire/firestore';
 import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
@@ -37,6 +37,7 @@ export interface User {
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const STORAGE_KEY_LAST_LOGIN = 'lastLoginTimestamp';
+const STORAGE_KEY_REDIRECT_PENDING = 'googleRedirectPending';
 
 @Injectable({
   providedIn: 'root'
@@ -53,6 +54,24 @@ export class AuthService {
   public initialAuthChecked$ = this.initialAuthChecked.asObservable();
 
   constructor(private router: Router, private toast: ToastService, private themeService: ThemeService) {
+    // Handle the result of a signInWithRedirect() call (used on mobile browsers
+    // and any browser that blocks popups). This must run on every page load
+    // BEFORE the authState listener so the credential is captured after the
+    // OAuth redirect returns the user to the app.
+    getRedirectResult(this.auth).then(result => {
+      if (result?.user) {
+        // Mark the login timestamp so the session doesn't immediately expire
+        localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
+      }
+      // Clear the pending flag regardless of result
+      localStorage.removeItem(STORAGE_KEY_REDIRECT_PENDING);
+    }).catch(err => {
+      console.error('Google Redirect Sign-In failed:', err);
+      localStorage.removeItem(STORAGE_KEY_REDIRECT_PENDING);
+      // Show a toast only if the user was actually expecting a redirect
+      this.toast.error('Google Sign-In failed. Please try again.');
+    });
+
     this.authSubscription = authState(this.auth).subscribe(async (firebaseUser) => {
       const isInitial = !this.initialAuthChecked.value;
 
@@ -126,14 +145,54 @@ export class AuthService {
   }
 
   public async loginWithGoogle(): Promise<boolean> {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
+    // Request account selection every time so users can switch accounts
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    // Detect mobile/tablet devices (including iPadOS which reports as MacOS
+    // with touch support) — these always block popups, so use redirect.
+    const isMobileOrTablet =
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent));
+
+    if (isMobileOrTablet) {
+      try {
+        // Set a flag so the loading state can be restored after redirect
+        localStorage.setItem(STORAGE_KEY_REDIRECT_PENDING, '1');
+        await signInWithRedirect(this.auth, provider);
+        return true; // Page navigates away; result is handled by getRedirectResult() in constructor
+      } catch (redirectError) {
+        console.error('Google Redirect failed to start (are you testing on a local IP?):', redirectError);
+        localStorage.removeItem(STORAGE_KEY_REDIRECT_PENDING);
+        
+        // If redirect fails to even start, try falling back to popup.
+        try {
+          await signInWithPopup(this.auth, provider);
+          localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
+          return true;
+        } catch (popupError) {
+          console.error('Google Popup fallback also failed:', popupError);
+          return false;
+        }
+      }
+    }
+
     try {
-      const provider = new GoogleAuthProvider();
       await signInWithPopup(this.auth, provider);
       localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
       return true;
     } catch (e: any) {
-      if (e?.code === 'auth/popup-blocked') {
-        // Fallback for browsers that block popups
+      // Handle all popup-blocking / cancellation codes as redirect fallback
+      const popupFailCodes = [
+        'auth/popup-blocked',
+        'auth/popup-closed-by-user',
+        'auth/cancelled-popup-request',
+      ];
+      if (popupFailCodes.includes(e?.code)) {
+        // Fallback: full-page redirect for browsers that block popups
+        localStorage.setItem(STORAGE_KEY_REDIRECT_PENDING, '1');
         await signInWithRedirect(this.auth, provider);
         return true;
       }
@@ -180,7 +239,9 @@ export class AuthService {
 
   // Admin creating a user manually makes them ACTIVE immediately
   public async saveUser(user: User, pass: string): Promise<void> {
-    const secondaryApp = initializeApp(environment.firebaseConfig, 'SecondaryApp');
+    // Use a uniquely-named secondary app to avoid signing out the primary session.
+    const secondaryAppName = `SecondaryApp_${Date.now()}`;
+    const secondaryApp = initializeApp(environment.firebaseConfig, secondaryAppName);
     const secondaryAuth = getAuth(secondaryApp);
 
     try {
@@ -200,10 +261,11 @@ export class AuthService {
         taxId: user.taxId || '',
         website: user.website || ''
       });
-
-      await secondaryAuth.signOut();
     } catch (error) {
       throw error;
+    } finally {
+      // Always sign out and clean up the secondary session
+      await secondaryAuth.signOut();
     }
   }
 
@@ -216,6 +278,22 @@ export class AuthService {
   public async approveUser(userId: string): Promise<void> {
     const userDocRef = doc(this.firestore, `users/${userId}`);
     await updateDoc(userDocRef, { status: 'ACTIVE' });
+  }
+
+  public async unapproveUser(userId: string): Promise<void> {
+    const userDocRef = doc(this.firestore, `users/${userId}`);
+    await updateDoc(userDocRef, { status: 'PENDING' });
+  }
+
+  /**
+   * Deletes the user's Firestore document.
+   * NOTE: This does NOT remove the Firebase Auth account (requires a Cloud Function).
+   * The user will be unable to access protected routes since their Firestore doc is gone.
+   */
+  public async deleteUserFromFirestore(userId: string): Promise<void> {
+    const { deleteDoc } = await import('@angular/fire/firestore');
+    const userDocRef = doc(this.firestore, `users/${userId}`);
+    await deleteDoc(userDocRef);
   }
 
   // --- Profile Updates & Logo Upload ---

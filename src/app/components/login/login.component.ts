@@ -38,8 +38,15 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Restore loading spinner if we're returning from a Google redirect
+    if (localStorage.getItem('googleRedirectPending') === '1') {
+      this.loading = true;
+    }
+
     // Handles navigation for: cached sessions, popup sign-in, and redirect sign-in after page reload
     this.userSub = this.authService.currentUser$.subscribe(user => {
+      // Always clear the loading state once auth resolves
+      this.loading = false;
       if (user) {
         if (user.status === 'PENDING') {
           this.toast.warning(ToasterMessages.auth.pendingApproval);

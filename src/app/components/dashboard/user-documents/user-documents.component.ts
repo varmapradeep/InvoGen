@@ -9,11 +9,12 @@ import { ToastService } from '../../../services/toast.service';
 import { SearchService } from '../../../services/search.service';
 import { ToasterMessages } from '../../../utils/messages.util';
 import { Subscription } from 'rxjs';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-user-documents',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent],
   templateUrl: './user-documents.component.html',
   styleUrl: './user-documents.component.scss'
 })
@@ -38,6 +39,10 @@ export class UserDocumentsComponent implements OnInit, OnDestroy {
 
   sortField: keyof InvoiceRecord = 'dateCreated';
   sortOrder: 'asc' | 'desc' = 'desc';
+
+  // Confirm modal state
+  showConfirmModal = false;
+  invoiceToDeleteId: string | null = null;
 
   constructor() {
     this.searchSub = this.searchService.searchTerm$.subscribe({
@@ -127,17 +132,31 @@ export class UserDocumentsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/editor', id]);
   }
 
-  async onDelete(id?: string, event?: Event) {
+  onDelete(id?: string, event?: Event) {
     if (event) event.stopPropagation();
-    if (!id || !confirm('Are you sure you want to delete this invoice?')) return;
-    
+    if (!id) return;
+    // Use custom modal instead of native confirm()
+    this.invoiceToDeleteId = id;
+    this.showConfirmModal = true;
+  }
+
+  async onConfirmDelete() {
+    if (!this.invoiceToDeleteId) return;
     try {
-      await this.invoiceService.deleteInvoice(id);
+      await this.invoiceService.deleteInvoice(this.invoiceToDeleteId);
       this.toast.success(ToasterMessages.invoices.deleteSuccess);
-      this.invoices = this.invoices.filter(i => i.id !== id);
+      this.invoices = this.invoices.filter(i => i.id !== this.invoiceToDeleteId);
     } catch (err) {
       this.toast.error(ToasterMessages.invoices.deleteFailed);
+    } finally {
+      this.invoiceToDeleteId = null;
+      this.showConfirmModal = false;
     }
+  }
+
+  onCancelDelete() {
+    this.invoiceToDeleteId = null;
+    this.showConfirmModal = false;
   }
 
   openInvoice(id?: string) {

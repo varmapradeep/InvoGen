@@ -130,4 +130,13 @@
      <button class="btn-page" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">Next</button>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <app-confirm-modal
+    *ngIf="showConfirmModal"
+    title="Delete Invoice"
+    message="Are you sure you want to permanently delete this invoice? This action cannot be undone."
+    (confirmed)="onConfirmDelete()"
+    (canceled)="onCancelDelete()">
+  </app-confirm-modal>
+
 </div>

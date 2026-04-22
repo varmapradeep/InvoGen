@@ -105,6 +105,15 @@
   </div>
 </div>
 
+<!-- Delete Confirm Modal -->
+<app-confirm-modal
+  *ngIf="showConfirmModal"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  (confirmed)="onConfirmAction()"
+  (canceled)="closeConfirm()">
+</app-confirm-modal>
+
 <!-- Edit Modal Overlay -->
 <div class="modal-overlay" *ngIf="editingUser" (click)="closeEdit()">
   <div class="modal-card" (click)="$event.stopPropagation()">
