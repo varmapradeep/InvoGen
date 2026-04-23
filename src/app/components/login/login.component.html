@@ -21,19 +21,20 @@
       <img *ngIf="currentTheme === 'light'" src="assets/logo/LightTheme.png" alt="InvoGen" class="login-logo" />
     </div>
 
-    <!-- Heading -->
-    <div class="heading-area">
-      <h2>
-        <span *ngIf="viewMode === 'login'">Welcome back</span>
-        <span *ngIf="viewMode === 'signup'">Create Account</span>
-        <span *ngIf="viewMode === 'forgot'">Reset Password</span>
-      </h2>
-      <p class="subtitle">
-        <span *ngIf="viewMode === 'login'">Sign in to your account to continue</span>
-        <span *ngIf="viewMode === 'signup'">Register to start managing invoices</span>
-        <span *ngIf="viewMode === 'forgot'">We'll send you an email to reset it</span>
-      </p>
-    </div>
+    <ng-container *ngIf="!loading">
+      <!-- Heading -->
+      <div class="heading-area">
+        <h2>
+          <span *ngIf="viewMode === 'login'">Welcome back</span>
+          <span *ngIf="viewMode === 'signup'">Create Account</span>
+          <span *ngIf="viewMode === 'forgot'">Reset Password</span>
+        </h2>
+        <p class="subtitle">
+          <span *ngIf="viewMode === 'login'">Sign in to your account to continue</span>
+          <span *ngIf="viewMode === 'signup'">Register to start managing invoices</span>
+          <span *ngIf="viewMode === 'forgot'">We'll send you an email to reset it</span>
+        </p>
+      </div>
 
     <form (ngSubmit)="onSubmit()" class="login-form">
 
@@ -90,6 +91,12 @@
         </p>
       </div>
     </form>
+    </ng-container>
+
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Authenticating...</p>
+    </div>
 
   </div>
 </div>

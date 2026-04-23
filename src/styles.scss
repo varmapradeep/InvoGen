@@ -267,4 +267,15 @@ svg {
     background: var(--nav-hover-bg);
     color: var(--text-main);
   }
+}
+
+/* ─── Global Theme Transition ──────────────────── */
+body.theme-transitioning,
+body.theme-transitioning *,
+body.theme-transitioning *::before,
+body.theme-transitioning *::after {
+  transition-duration: 0.35s !important;
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow, background-image !important;
+  transition-timing-function: ease-in-out !important;
+  transition-delay: 0s !important;
 }

@@ -12,6 +12,7 @@ import { ToasterMessages } from '../../utils/messages.util';
 import { ImageCropperModalComponent } from '../shared/image-cropper/image-cropper.component';
 import { ConfirmModalComponent } from '../shared/confirm-modal/confirm-modal.component';
 import { SaveTemplateModalComponent } from '../shared/save-template-modal/save-template-modal.component';
+import { combineLatest } from 'rxjs';
 
 @Component({
   selector: 'app-invoice-editor',
@@ -59,12 +60,13 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
 
   // UI State
   zoomLevel: number = 0.8;
-  computedPages: InvoiceSession[][] = [];
+  computedPages: InvoiceSession[][] = [[]];
   selectedSessionId: string | null = null;
   selectedColumnId: string | null = null;
   showLayoutPicker: boolean = false;
   activeInspectorTab: 'content' | 'styles' = 'content';
   expandedRows: { [rowId: string]: boolean } = {};
+  expandedColumns: { [colId: string]: boolean } = {};
   pendingUploads = new Map<string, Blob>(); // Element ID -> Blob
   sessionToDelete: string | null = null;
   customNames: { [id: string]: string } = {};       // user-defined names for rows/cols
@@ -151,40 +153,37 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       this.currentUser = user;
     });
 
-    // NEW: Combine params and queryParams to ensure fresh=true is always handled
-    import('rxjs').then(m => {
-      m.combineLatest([this.route.params, this.route.queryParams]).subscribe(async ([params, qParams]) => {
-        this.isTemplateMode = qParams['mode'] === 'template';
-        this.templateId = qParams['id'];
-        const isFresh = qParams['fresh'] === 'true';
+    combineLatest([this.route.params, this.route.queryParams]).subscribe(async ([params, qParams]) => {
+      this.isTemplateMode = qParams['mode'] === 'template';
+      this.templateId = qParams['id'];
+      const isFresh = qParams['fresh'] === 'true';
 
-        if (params['id']) {
-          this.editId = params['id'];
-          await this.loadInvoice(this.editId!);
-        } else if (this.isTemplateMode && this.templateId) {
-          await this.loadTemplate(this.templateId);
-        } else if (qParams['templateId']) {
-          await this.loadTemplate(qParams['templateId']);
-        } else if (this.currentUser) {
-          if (!isFresh) {
-            const latestDraft = await this.invoiceService.getLatestDraft(this.currentUser.id);
-            if (latestDraft) {
-              this.editId = latestDraft.id!;
-              await this.loadInvoice(this.editId);
-              setTimeout(() => {
-                this.toast.info('Restored your latest draft.');
-              }, 0);
-            } else {
-              this.initNewInvoice();
-            }
+      if (params['id']) {
+        this.editId = params['id'];
+        await this.loadInvoice(this.editId!);
+      } else if (this.isTemplateMode && this.templateId) {
+        await this.loadTemplate(this.templateId);
+      } else if (qParams['templateId']) {
+        await this.loadTemplate(qParams['templateId']);
+      } else if (this.currentUser) {
+        if (!isFresh) {
+          const latestDraft = await this.invoiceService.getLatestDraft(this.currentUser.id);
+          if (latestDraft) {
+            this.editId = latestDraft.id!;
+            await this.loadInvoice(this.editId);
+            setTimeout(() => {
+              this.toast.info('Restored your latest draft.');
+            }, 0);
           } else {
             this.initNewInvoice();
           }
         } else {
           this.initNewInvoice();
         }
-        this.paginate();
-      });
+      } else {
+        this.initNewInvoice();
+      }
+      this.paginate();
     });
   }
 
@@ -211,6 +210,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     const data = await this.invoiceService.getInvoiceById(id);
     if (data && data.fullData) {
       this.sessions = JSON.parse(JSON.stringify(data.fullData.sessions));
+      this.upgradeSessions(this.sessions);
       this.theme = { ...data.fullData.theme };
       this.invoiceNo = data.invoiceNo;
       this.invoiceDate = data.dateCreated;
@@ -224,6 +224,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     const template = templates.find(t => t.id === id);
     if (template) {
        this.sessions = JSON.parse(JSON.stringify(template.fullData.sessions));
+       this.upgradeSessions(this.sessions);
        this.theme = { ...template.fullData.theme };
        
        // If this is a Premium template and the user is not ADMIN → restrict
@@ -258,8 +259,144 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   /** Collapse all rows on load (so user can selectively expand) */
   private initExpandedRows() {
     this.expandedRows = {};
-    for (const row of this.sessions) this.expandedRows[row.id] = false;
+    this.expandedColumns = {};
+    for (const row of this.sessions) {
+      this.expandedRows[row.id] = false;
+      if (row.sessions) {
+        for (const col of row.sessions) {
+          this.expandedColumns[col.id] = false;
+        }
+      }
+    }
     this.paginate();
+  }
+
+  dropItem(event: any) {
+    if (this.selectedSession?.content?.items) {
+      moveItemInArray(this.selectedSession.content.items, event.previousIndex, event.currentIndex);
+      this.paginate();
+    }
+  }
+
+  dropColumn(event: CdkDragDrop<any[]>) {
+    if (this.selectedSession?.type === 'items') {
+      const columns = this.selectedSession.content.columns;
+      const visibleCols = columns.filter((c: any) => c.visible);
+      
+      const prevVisibleIdx = event.previousIndex;
+      const currVisibleIdx = event.currentIndex;
+      
+      const itemToMove = visibleCols[prevVisibleIdx];
+      const targetItem = visibleCols[currVisibleIdx];
+
+      // Find absolute indexes in the full columns array
+      const fromIndex = columns.indexOf(itemToMove);
+      const toIndex = columns.indexOf(targetItem);
+
+      if (fromIndex !== -1 && toIndex !== -1) {
+        moveItemInArray(columns, fromIndex, toIndex);
+        
+        // Safety: Ensure Sl. No (if exists) stays at index 0
+        const slIdx = columns.findIndex((c: any) => c.id === 'slNo');
+        if (slIdx !== -1 && slIdx !== 0) {
+          const slItem = columns.splice(slIdx, 1)[0];
+          columns.unshift(slItem);
+        }
+
+        // Force reference update for Angular change detection
+        this.selectedSession.content.columns = [...columns];
+        this.paginate();
+      }
+    }
+  }
+
+  trackByColumnId(index: number, col: any) {
+    return col.id;
+  }
+
+  addCustomColumn() {
+    if (this.selectedSession?.type === 'items') {
+      const columns = [...(this.selectedSession.content.columns || [])];
+      const customId = `custom_${Date.now()}`;
+      columns.push({
+        id: customId,
+        label: 'New Column',
+        visible: true,
+        isFixed: false,
+        isCustom: true
+      });
+      
+      // Initialize empty value for this column in all existing items
+      if (this.selectedSession.content.items) {
+        this.selectedSession.content.items.forEach((item: any) => {
+          if (item[customId] === undefined) item[customId] = '';
+        });
+      }
+      
+      this.selectedSession.content.columns = columns;
+      this.paginate();
+    }
+  }
+
+  removeColumn(id: string) {
+    if (this.selectedSession?.type === 'items') {
+      const columns = [...(this.selectedSession.content.columns || [])];
+      const idx = columns.findIndex((c: any) => c.id === id);
+      if (idx !== -1) {
+        columns.splice(idx, 1);
+        this.selectedSession.content.columns = columns;
+        this.paginate();
+      }
+    }
+  }
+
+  private upgradeSessions(sessions: InvoiceSession[]) {
+    for (const session of sessions) {
+      if (session.type === 'items') {
+        if (Array.isArray(session.content)) {
+          session.content = {
+            headers: { slNo: 'Sl. No', description: 'Description', qty: 'Qty', rate: 'Price', tax: 'Tax (%)', gst: 'GST (%)', discount: 'Discount (%)', amount: 'Amount' },
+            options: { showSlNo: false, showTax: false, showGst: false, showDiscount: false },
+            items: session.content.map((item: any) => ({ ...item, tax: 0, gst: 0, discount: 0 }))
+          };
+        }
+        
+        if (!session.content.summary) {
+          session.content.summary = {
+            rate: 0,
+            labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
+            customRows: []
+          };
+        }
+        
+        if (!session.content.columns) {
+          const opts = session.content.options || {};
+          const hdrs = session.content.headers || {};
+          session.content.columns = [
+            { id: 'slNo', label: hdrs.slNo || 'Sl. No', visible: true, isFixed: false },
+            { id: 'description', label: hdrs.description || 'Description', visible: true, isFixed: true },
+            { id: 'qty', label: hdrs.qty || 'Qty', visible: true, isFixed: true },
+            { id: 'rate', label: hdrs.rate || 'Price', visible: true, isFixed: true },
+            { id: 'tax', label: hdrs.tax || 'Tax (%)', visible: opts.showTax || false, isFixed: false },
+            { id: 'gst', label: hdrs.gst || 'GST (%)', visible: opts.showGst || false, isFixed: false },
+            { id: 'discount', label: hdrs.discount || 'Discount (%)', visible: opts.showDiscount || false, isFixed: false },
+            { id: 'amount', label: hdrs.amount || 'Amount', visible: true, isFixed: true }
+          ];
+        }
+      } else if (session.type === 'tax') {
+        if (typeof session.content?.rate === 'number' && !session.content.labels) {
+          session.content = {
+            rate: session.content.rate,
+            labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
+            customRows: []
+          };
+        }
+      }
+      
+      if (session.sessions) {
+        this.upgradeSessions(session.sessions);
+      }
+    }
   }
 
   /**
@@ -289,8 +426,12 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     }
 
     // Item Table: Header (45px) + Row (38px) * count + space
-    if (session.type === 'items' && Array.isArray(session.content)) {
-      height = 50 + (session.content.length * 40) + 20;
+    if (session.type === 'items' && session.content) {
+      const itemsList = Array.isArray(session.content) ? session.content : (session.content.items || []);
+      height = 50 + (itemsList.length * 40) + 20;
+      if (!Array.isArray(session.content)) {
+        height += 150 + ((session.content.summary?.customRows?.length || 0) * 30);
+      }
     }
 
     // Branding / Header: Fixed approx
@@ -384,13 +525,44 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     return session?.sessions || [];
   }
 
+  getVisibleColumns(columns: any[]): any[] {
+    if (!columns) return [];
+    return columns.filter(c => c.visible);
+  }
+
   get subtotal(): number {
     const itemsSession = this.findSessionRecursive(this.sessions, 'items');
     if (!itemsSession || !itemsSession.content) return 0;
-    return itemsSession.content.reduce((sum: number, item: any) => sum + (item.qty * item.rate), 0);
+    
+    if (Array.isArray(itemsSession.content)) {
+      return itemsSession.content.reduce((sum: number, item: any) => sum + (item.qty * item.rate), 0);
+    }
+    
+    const columns = itemsSession.content.columns || [];
+    const isVisible = (id: string) => columns.find((c: any) => c.id === id)?.visible;
+    return itemsSession.content.items.reduce((sum: number, item: any) => {
+      let lineTotal = item.qty * item.rate;
+      if (isVisible('tax') && item.tax) lineTotal += lineTotal * (item.tax / 100);
+      if (isVisible('gst') && item.gst) lineTotal += lineTotal * (item.gst / 100);
+      if (isVisible('discount') && item.discount) lineTotal -= lineTotal * (item.discount / 100);
+      return sum + lineTotal;
+    }, 0);
+  }
+
+  getItemLineTotal(item: any, columns: any[]): number {
+    let lineTotal = item.qty * item.rate;
+    const isVisible = (id: string) => columns?.find((c: any) => c.id === id)?.visible;
+    if (isVisible('tax') && item.tax) lineTotal += lineTotal * (item.tax / 100);
+    if (isVisible('gst') && item.gst) lineTotal += lineTotal * (item.gst / 100);
+    if (isVisible('discount') && item.discount) lineTotal -= lineTotal * (item.discount / 100);
+    return lineTotal;
   }
 
   get taxRate(): number {
+    const itemsSession = this.findSessionRecursive(this.sessions, 'items');
+    if (itemsSession && !Array.isArray(itemsSession.content)) {
+      return itemsSession.content.summary?.rate || 0;
+    }
     const taxSession = this.findSessionRecursive(this.sessions, 'tax');
     return taxSession?.content?.rate || 0;
   }
@@ -404,7 +576,26 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   get grandTotal(): number {
-    const total = this.subtotal + this.taxAmount - this.discountAmount + (this.theme.shipping || 0);
+    let total = this.subtotal + this.taxAmount - this.discountAmount + (this.theme.shipping || 0);
+    
+    const itemsSession = this.findSessionRecursive(this.sessions, 'items');
+    if (itemsSession && !Array.isArray(itemsSession.content)) {
+      if (itemsSession.content.summary?.customRows) {
+        itemsSession.content.summary.customRows.forEach((row: any) => {
+          if (row.type === 'add') total += row.amount;
+          else if (row.type === 'subtract') total -= row.amount;
+        });
+      }
+      return Math.max(0, total);
+    }
+
+    const taxSession = this.findSessionRecursive(this.sessions, 'tax');
+    if (taxSession?.content?.customRows) {
+      taxSession.content.customRows.forEach((row: any) => {
+        if (row.type === 'add') total += row.amount;
+        else if (row.type === 'subtract') total -= row.amount;
+      });
+    }
     return Math.max(0, total);
   }
 
@@ -632,8 +823,29 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     switch (type) {
       case 'header': return { logoSize: 60, customLogo: userLogo };
       case 'billed-to': return { fromName: this.currentUser?.companyName || '', fromAddress: this.currentUser?.companyAddress || '', name: '', address: '' };
-      case 'items': return [{ description: 'New Service', qty: 1, rate: 0 }];
-      case 'tax': return { rate: 0 };
+      case 'items': return {
+        columns: [
+          { id: 'slNo', label: 'Sl. No', visible: true, isFixed: false },
+          { id: 'description', label: 'Description', visible: true, isFixed: true },
+          { id: 'qty', label: 'Qty', visible: true, isFixed: true },
+          { id: 'rate', label: 'Price', visible: true, isFixed: true },
+          { id: 'tax', label: 'Tax (%)', visible: false, isFixed: false },
+          { id: 'gst', label: 'GST (%)', visible: false, isFixed: false },
+          { id: 'discount', label: 'Discount (%)', visible: false, isFixed: false },
+          { id: 'amount', label: 'Amount', visible: true, isFixed: true }
+        ],
+        items: [{ description: 'New Service', qty: 1, rate: 0, tax: 0, gst: 0, discount: 0 }],
+        summary: {
+          rate: 0,
+          labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
+          customRows: []
+        }
+      };
+      case 'tax': return { 
+        rate: 0,
+        labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
+        customRows: []
+      };
       case 'heading': return 'New Heading';
       case 'paragraph': return 'Enter your paragraph text here...';
       case 'image': return '';
@@ -901,18 +1113,23 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.showSaveTemplateModal = true;
   }
 
-  async handleSaveTemplate(data: { name: string, isPublic: boolean, isPremium: boolean }) {
+  async handleSaveTemplate(data: { mode: 'draft' | 'template', name?: string, isPublic?: boolean, isPremium?: boolean }) {
     this.showSaveTemplateModal = false;
     if (!this.currentUser) return;
+
+    if (data.mode === 'draft') {
+      this.saveDraft();
+      return;
+    }
     
     this.isSaving = true;
     try {
       const templateData: Omit<InvoiceTemplate, 'id'> = {
-        name: data.name,
+        name: data.name!,
         userId: this.currentUser.id,
         isPredefined: false,
         visibility: data.isPublic ? 'public' : 'private',
-        isPremium: data.isPremium,
+        isPremium: data.isPremium || false,
         fullData: { 
           sessions: JSON.parse(JSON.stringify(this.sessions)), 
           theme: { ...this.theme } 
@@ -977,6 +1194,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.snapshot();
     moveItemInArray(this.sessions, event.previousIndex, event.currentIndex);
     this.isSaved = false;
+    this.paginate();
   }
 
   /** Handles same-column reorder AND cross-column/cross-row transfer */
@@ -992,6 +1210,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       transferArrayItem(src, dst, event.previousIndex, event.currentIndex);
     }
     this.isSaved = false;
+    this.paginate();
   }
 
   async downloadPDF() {

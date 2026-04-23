@@ -101,13 +101,13 @@ export class AuthService {
         if (userDoc.exists()) {
           appUser = { id: firebaseUser.uid, ...userDoc.data() } as User;
         } else {
-          // New Google Sign-In user — create as PENDING
+          // New Google Sign-In user — create as ACTIVE
           appUser = {
             id: firebaseUser.uid,
             email: firebaseUser.email || '',
             name: firebaseUser.displayName || 'Unknown User',
             role: 'USER',
-            status: 'PENDING'
+            status: 'ACTIVE'
           };
           await setDoc(userDocRef, {
             email: appUser.email,
@@ -148,54 +148,13 @@ export class AuthService {
     const provider = new GoogleAuthProvider();
     provider.addScope('email');
     provider.addScope('profile');
-    // Request account selection every time so users can switch accounts
     provider.setCustomParameters({ prompt: 'select_account' });
-
-    // Detect mobile/tablet devices (including iPadOS which reports as MacOS
-    // with touch support) — these always block popups, so use redirect.
-    const isMobileOrTablet =
-      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-      (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.userAgent));
-
-    if (isMobileOrTablet) {
-      try {
-        // Set a flag so the loading state can be restored after redirect
-        localStorage.setItem(STORAGE_KEY_REDIRECT_PENDING, '1');
-        await signInWithRedirect(this.auth, provider);
-        return true; // Page navigates away; result is handled by getRedirectResult() in constructor
-      } catch (redirectError) {
-        console.error('Google Redirect failed to start (are you testing on a local IP?):', redirectError);
-        localStorage.removeItem(STORAGE_KEY_REDIRECT_PENDING);
-        
-        // If redirect fails to even start, try falling back to popup.
-        try {
-          await signInWithPopup(this.auth, provider);
-          localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
-          return true;
-        } catch (popupError) {
-          console.error('Google Popup fallback also failed:', popupError);
-          return false;
-        }
-      }
-    }
 
     try {
       await signInWithPopup(this.auth, provider);
       localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
       return true;
     } catch (e: any) {
-      // Handle all popup-blocking / cancellation codes as redirect fallback
-      const popupFailCodes = [
-        'auth/popup-blocked',
-        'auth/popup-closed-by-user',
-        'auth/cancelled-popup-request',
-      ];
-      if (popupFailCodes.includes(e?.code)) {
-        // Fallback: full-page redirect for browsers that block popups
-        localStorage.setItem(STORAGE_KEY_REDIRECT_PENDING, '1');
-        await signInWithRedirect(this.auth, provider);
-        return true;
-      }
       console.error('Google Login failed', e);
       return false;
     }
@@ -210,7 +169,7 @@ export class AuthService {
         email: email,
         name: name,
         role: 'USER',
-        status: 'PENDING'
+        status: 'ACTIVE'
       });
       return true;
     } catch (e) {

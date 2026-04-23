@@ -1,5 +1,5 @@
 <div class="builder-container animated-fade-in" [ngClass]="'mobile-view-' + mobileActiveView"
-  [style.--accent-color]="theme.primaryColor" [style.--font-family]="theme.fontFamily">
+  [style.--font-family]="theme.fontFamily">
 
   <!-- LEFT: Layer Navigator -->
   <aside class="builder-sidebar">
@@ -65,7 +65,7 @@
         <!-- Empty state -->
         <div class="layers-empty" *ngIf="sessions.length === 0">
           <p>No layouts yet.</p>
-          <button (click)="showLayoutPicker = true">+ Add First Layout</button>
+          <!-- <button (click)="showLayoutPicker = true">+ Add First Layout</button> -->
         </div>
 
         <!-- Row Node -->
@@ -113,6 +113,12 @@
 
               <!-- Column Header -->
               <div class="tree-node-header col-head">
+                <button class="tree-toggle"
+                  (click)="expandedColumns[col.id] = !expandedColumns[col.id]; $event.stopPropagation()"
+                  [title]="expandedColumns[col.id] ? 'Collapse' : 'Expand'">
+                  {{ expandedColumns[col.id] ? '▾' : '▸' }}
+                </button>
+
                 <svg class="t-icon">
                   <use [attr.href]="icons.dashboard"></use>
                 </svg>
@@ -138,8 +144,9 @@
               </div>
 
               <!-- Elements — connected to ALL column drop lists for cross-column/row DnD -->
-              <div class="tree-el-list" cdkDropList [id]="'el-list-' + col.id" [cdkDropListData]="col.sessions"
-                [cdkDropListConnectedTo]="allElementDropListIds" (cdkDropListDropped)="dropElement($event)">
+              <div class="tree-el-list" *ngIf="expandedColumns[col.id]" cdkDropList [id]="'el-list-' + col.id"
+                [cdkDropListData]="col.sessions" [cdkDropListConnectedTo]="allElementDropListIds"
+                (cdkDropListDropped)="dropElement($event)">
 
                 <div *ngFor="let el of col.sessions" cdkDrag [cdkDragData]="el" class="tree-el-node"
                   [class.selected]="selectedSessionId === el.id"
@@ -168,8 +175,7 @@
                 </div>
 
                 <!-- Empty column hint -->
-                <div class="tree-el-empty" *ngIf="!col.sessions?.length" (click)="selectColumnAndAdd(col, $event)">+ add
-                  element</div>
+                <div class="tree-el-empty" (click)="selectColumnAndAdd(col, $event)">+ add element</div>
               </div>
             </div>
           </div>
@@ -181,12 +187,12 @@
 
     <div class="sidebar-footer">
       <button class="btn-secondary" (click)="router.navigate(['/dashboard'])">Back</button>
-      <button class="btn-primary" [disabled]="isSaving" (click)="saveDraft()">Save</button>
+      <button class="btn-primary" [disabled]="isSaving" (click)="openSaveTemplateModal()">Save</button>
     </div>
   </aside>
 
   <!-- MIDDLE: Canvas Area -->
-  <main class="builder-preview">
+  <main class="builder-preview" [style.--accent-color]="theme.primaryColor">
     <header class="preview-toolbar">
       <div class="zoom-controls">
         <button (click)="zoomOut()" title="Zoom Out">−</button>
@@ -198,10 +204,6 @@
         <button class="btn-icon-action" (click)="undo()" [disabled]="!canUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
         <button class="btn-icon-action" (click)="redo()" [disabled]="!canRedo" title="Redo (Ctrl+Y)">↪ Redo</button>
         <button (click)="printInvoice()">Print / PDF</button>
-        <button class="btn-save-as" (click)="saveAsTemplate()" [disabled]="isSaving" title="Save as Template">📂
-          Template</button>
-        <button class="btn-save" (click)="saveDraft()" [disabled]="isSaving">{{ isSaving ? 'Saving...' : 'Save Draft'
-          }}</button>
         <button class="btn-close" (click)="exitEditor()">Exit</button>
       </div>
     </header>
@@ -211,7 +213,7 @@
       (click)="selectedSessionId = null; selectedColumnId = null">
       <div class="a4-wrapper" [style.transform]="'scale(' + zoomLevel + ')'">
         <div id="invoiceDoc" class="multi-page-container">
-          
+
           <div *ngFor="let page of computedPages; let pi = index" class="a4-page">
             <!-- Apply Backgrounds to Every Page -->
             <div class="page-background" [style.background-color]="theme.pageBgColor"
@@ -220,7 +222,7 @@
 
             <!-- Page Content -->
             <div class="page-content">
-               <ng-container *ngFor="let s of page">
+              <ng-container *ngFor="let s of page">
                 <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: s }"></ng-container>
               </ng-container>
             </div>
@@ -238,14 +240,16 @@
 
             <!-- Watermark on Every Page -->
             <div class="watermark">Created with InvoGen Builder</div>
-            
+
             <!-- Page Numbering (Optional helper) -->
-            <div class="page-number-hint" *ngIf="computedPages.length > 1">Page {{ pi + 1 }} of {{ computedPages.length }}</div>
+            <div class="page-number-hint" *ngIf="computedPages.length > 1">Page {{ pi + 1 }} of {{ computedPages.length
+              }}</div>
           </div>
 
         </div>
       </div>
     </div>
+
   </main>
 
   <!-- RIGHT: Property Inspector -->
@@ -266,11 +270,25 @@
     <div class="inspector-scroll-area" *ngIf="!selectedSession">
       <div class="ins-tab-pane">
         <div class="ins-section">
+          <label>Background Color</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Pick Color</span>
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="theme.pageBgColor">
+                  <input type="color" [(ngModel)]="theme.pageBgColor">
+                </div>
+                <span class="color-value">{{ theme.pageBgColor }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ins-section">
           <label>Background Image</label>
           <div class="img-upload-zone" *ngIf="!theme.pageBgImage" (click)="pageBgInput.click()">
             <input type="file" #pageBgInput (change)="onPageBgUpload($event)" accept="image/*" style="display:none">
             <button class="btn-upload-direct">
-              <svg class="upload-icon" style="width:16px;height:16px;margin-right:8px">
+              <svg class="upload-icon">
                 <use [attr.href]="icons.plus"></use>
               </svg>
               <span>Upload Image</span>
@@ -291,15 +309,7 @@
             </div>
           </div>
         </div>
-        <div class="ins-section">
-          <label>Background Color</label>
-          <div class="s-row">
-            <div class="s-field">
-              <span>Pick Color</span>
-              <input type="color" [(ngModel)]="theme.pageBgColor">
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
 
@@ -323,6 +333,9 @@
               <button class="q-btn" (click)="addSession('image')" title="Add Image"><svg>
                   <use [attr.href]="icons.image"></use>
                 </svg><span>Image</span></button>
+              <button class="q-btn" (click)="addSession('items')" title="Add Items Table"><svg>
+                  <use [attr.href]="icons.grid"></use>
+                </svg><span>Table</span></button>
               <button class="q-btn" (click)="addSession('data-field')" title="Add Smart Field"><svg>
                   <use [attr.href]="icons.receipt"></use>
                 </svg><span>Field</span></button>
@@ -335,9 +348,18 @@
             </div>
 
             <div class="ins-quick-grid spacing-top">
-              <button class="q-btn-wide" (click)="addSession('header')">Business Branding</button>
-              <button class="q-btn-wide" (click)="addSession('billed-to')">Client Details</button>
-              <button class="q-btn-wide" (click)="addSession('items')">Items Table</button>
+              <button class="q-btn-wide" (click)="addSession('header')">
+                <svg>
+                  <use [attr.href]="icons.logo"></use>
+                </svg>
+                <span>Branding</span>
+              </button>
+              <button class="q-btn-wide" (click)="addSession('billed-to')">
+                <svg>
+                  <use [attr.href]="icons.users"></use>
+                </svg>
+                <span>Client</span>
+              </button>
             </div>
           </div>
 
@@ -378,6 +400,9 @@
             (click)="headerLogoInput.click()">
             <input type="file" #headerLogoInput (change)="onLogoUpload($event)" accept="image/*" style="display:none">
             <button class="btn-upload-direct">
+              <svg class="upload-icon">
+                <use [attr.href]="icons.plus"></use>
+              </svg>
               <span>Upload Logo</span>
             </button>
           </div>
@@ -395,7 +420,7 @@
             <input type="file" #sessionImgInput (change)="onSessionImageUpload($event, selectedSession)"
               accept="image/*" style="display:none">
             <button class="btn-upload-direct">
-              <svg class="upload-icon" style="width:16px;height:16px;margin-right:8px">
+              <svg class="upload-icon">
                 <use [attr.href]="icons.plus"></use>
               </svg>
               <span>Choose Image</span>
@@ -410,23 +435,30 @@
         <div class="ins-group" *ngIf="selectedSession.type === 'data-field'">
           <label>Smart Data Mapping</label>
           <div class="smart-field-grid">
-            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'invoiceNo'"
+            <button class="s-field-btn"
+              [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'invoiceNo'"
               (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'invoiceNo', label: ''} : selectedSession.content.field = 'invoiceNo'">Number</button>
-            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'date'"
+            <button class="s-field-btn"
+              [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'date'"
               (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'date', label: ''} : selectedSession.content.field = 'date'">Date</button>
-            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'total'"
-              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'total', label: ''} : selectedSession.content.field = 'total'">Grand Total</button>
-            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'clientName'"
+            <button class="s-field-btn"
+              [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'total'"
+              (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'total', label: ''} : selectedSession.content.field = 'total'">Grand
+              Total</button>
+            <button class="s-field-btn"
+              [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'clientName'"
               (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'clientName', label: ''} : selectedSession.content.field = 'clientName'">Client</button>
-            <button class="s-field-btn" [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'companyName'"
+            <button class="s-field-btn"
+              [class.active]="(isString(selectedSession.content) ? selectedSession.content : selectedSession.content.field) === 'companyName'"
               (click)="isString(selectedSession.content) ? selectedSession.content = {field: 'companyName', label: ''} : selectedSession.content.field = 'companyName'">Company</button>
           </div>
-          
+
           <div class="label-control-box" *ngIf="!isString(selectedSession.content)">
             <label class="ins-sub-label spacing-top">Field Label (Optional)</label>
             <div class="label-input-wrap">
               <input type="text" [(ngModel)]="selectedSession.content.label" placeholder="e.g. Invoice #: ">
-              <button class="btn-clear-label" title="Remove Label" *ngIf="selectedSession.content.label" (click)="selectedSession.content.label = ''">×</button>
+              <button class="btn-clear-label" title="Remove Label" *ngIf="selectedSession.content.label"
+                (click)="selectedSession.content.label = ''">×</button>
             </div>
             <p class="ins-help">Add text before the raw data value.</p>
           </div>
@@ -435,20 +467,190 @@
 
         <!-- Items Table -->
         <div class="ins-group" *ngIf="selectedSession.type === 'items'">
-          <label>Items List</label>
-          <div class="ins-items-list">
-            <div *ngFor="let item of selectedSession.content; let i = index" class="ins-item-row">
-              <input type="text" [(ngModel)]="item.description" placeholder="Description">
-              <div class="ins-item-vals">
-                <input type="number" [(ngModel)]="item.qty" placeholder="Qty">
-                <input type="number" [(ngModel)]="item.rate" placeholder="Rate">
-                <button (click)="selectedSession.content.splice(i, 1); paginate()"
-                  *ngIf="selectedSession.content.length > 1">×</button>
+          <label class="ins-label-premium">Column Enabler</label>
+          <div class="column-enabler-grid">
+            <ng-container *ngFor="let col of selectedSession.content.columns">
+              <label class="enabler-item" *ngIf="!col.isFixed">
+                <span class="enabler-label">{{ col.id | uppercase }}</span>
+                <div class="t-switch">
+                  <input type="checkbox" [(ngModel)]="col.visible" (change)="paginate()">
+                  <span class="slider"></span>
+                </div>
+              </label>
+            </ng-container>
+          </div>
+
+          <label class="spacing-top">Column Manager (Visible)</label>
+          <div class="col-manager-list" cdkDropList (cdkDropListDropped)="dropColumn($event)">
+            <ng-container *ngFor="let col of selectedSession.content.columns; let ci = index; trackBy: trackByColumnId">
+              <div *ngIf="col.visible" cdkDrag [cdkDragDisabled]="col.id === 'slNo'" class="ins-item-row"
+                style="display:flex; align-items:center; gap:8px; margin-bottom:6px; padding: 10px 12px; background: var(--nav-hover-bg); border: 1px dashed var(--accent-color); border-radius: 12px;">
+                <div class="drag-handle" *ngIf="col.id !== 'slNo'" cdkDragHandle
+                  style="color:var(--accent-color); cursor:grab; font-size:12px; display:flex; align-items:center;">⠿
+                </div>
+                <div class="drag-handle fixed-handle" *ngIf="col.id === 'slNo'"
+                  style="color:var(--text-muted); cursor:default; font-size:12px; display:flex; align-items:center;">🔒
+                </div>
+
+                <input type="text" [(ngModel)]="col.label"
+                  style="flex:1; background:transparent; border:none; outline:none; color:var(--text-main); font-weight:600; font-size:12px;"
+                  [placeholder]="col.id" (change)="paginate()">
+                <button class="btn-delete-row" *ngIf="col.id !== 'slNo'" (click)="removeColumn(col.id)"
+                  style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
+              </div>
+            </ng-container>
+          </div>
+          <button class="btn-ins-add-premium small-btn" style="margin-top: 8px;" (click)="addCustomColumn()">
+            <svg class="plus-icon">
+              <use [attr.href]="icons.plus"></use>
+            </svg>
+            Add Custom Header
+          </button>
+
+          <label class="ins-label-premium spacing-top">Items List</label>
+          <div class="ins-items-list-premium" cdkDropList (cdkDropListDropped)="dropItem($event)">
+            <div *ngFor="let item of selectedSession.content.items; let i = index" cdkDrag class="premium-item-card">
+              <div class="drag-handle" cdkDragHandle>⠿</div>
+              <div class="card-main">
+                <input type="text" [(ngModel)]="item.description" placeholder="Item Description" class="desc-input">
+                <button class="btn-delete-item" (click)="selectedSession.content.items.splice(i, 1); paginate()"
+                  *ngIf="selectedSession.content.items.length > 1">×</button>
+              </div>
+              <div class="card-values">
+                <div class="val-input">
+                  <span class="v-tag">QTY</span>
+                  <input type="number" [(ngModel)]="item.qty" (change)="paginate()">
+                </div>
+                <div class="val-input">
+                  <span class="v-tag">RATE</span>
+                  <input type="number" [(ngModel)]="item.rate" (change)="paginate()">
+                </div>
+                <div class="val-input" *ngIf="selectedSession.content.options.showTax">
+                  <span class="v-tag">TAX%</span>
+                  <input type="number" [(ngModel)]="item.tax" (change)="paginate()">
+                </div>
+                <div class="val-input" *ngIf="selectedSession.content.options.showGst">
+                  <span class="v-tag">GST%</span>
+                  <input type="number" [(ngModel)]="item.gst" (change)="paginate()">
+                </div>
+                <div class="val-input" *ngIf="selectedSession.content.options.showDiscount">
+                  <span class="v-tag">DISC%</span>
+                  <input type="number" [(ngModel)]="item.discount" (change)="paginate()">
+                </div>
+                <!-- Custom Column Inputs -->
+                <ng-container *ngFor="let col of selectedSession.content.columns">
+                  <div class="val-input" *ngIf="col.isCustom && col.visible">
+                    <span class="v-tag">{{ col.label | uppercase }}</span>
+                    <input type="text" [(ngModel)]="item[col.id]" (change)="paginate()" placeholder="Value">
+                  </div>
+                </ng-container>
               </div>
             </div>
           </div>
-          <button class="btn-ins-add" (click)="selectedSession.content.push({description:'', qty:1, rate:0}); paginate()">+ Add
-            Item</button>
+          <button class="btn-ins-add-premium"
+            (click)="selectedSession.content.items.push({description:'', qty:1, rate:0, tax:0, gst:0, discount:0}); paginate()">
+            <svg class="plus-icon">
+              <use [attr.href]="icons.plus"></use>
+            </svg>
+            Add New Item
+          </button>
+
+          <!-- Built-in Summary Configuration -->
+          <div class="summary-config-section">
+            <label class="ins-label-premium">Summary Options</label>
+            <div class="summary-fields-grid">
+              <div class="field-wrap">
+                <span class="field-tag">Subtotal</span>
+                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.subtotal" placeholder="Label">
+              </div>
+              <div class="field-wrap">
+                <span class="field-tag">Tax Rate</span>
+                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.taxRate" placeholder="Label">
+              </div>
+              <div class="field-wrap">
+                <span class="field-tag">Tax Amt</span>
+                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.tax" placeholder="Label">
+              </div>
+              <div class="field-wrap">
+                <span class="field-tag">Total</span>
+                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.total" placeholder="Label">
+              </div>
+            </div>
+
+            <div class="global-tax-wrap">
+              <label class="ins-label-premium">Global Tax Rate (%)</label>
+              <input type="number" [(ngModel)]="selectedSession.content.summary.rate" class="premium-input"
+                placeholder="0">
+            </div>
+
+            <div class="custom-rows-section">
+              <label class="ins-label-premium">Custom Summary Rows</label>
+              <div class="ins-items-list">
+                <div *ngFor="let row of selectedSession.content.summary.customRows; let i = index"
+                  class="premium-summary-row">
+                  <div class="row-main">
+                    <input type="text" [(ngModel)]="row.label" placeholder="Header (e.g. Shipping)">
+                    <button class="btn-delete-row"
+                      (click)="selectedSession.content.summary.customRows.splice(i, 1); paginate()">×</button>
+                  </div>
+                  <div class="row-details">
+                    <select [(ngModel)]="row.type">
+                      <option value="add">Add (+)</option>
+                      <option value="subtract">Subtract (-)</option>
+                    </select>
+                    <input type="number" [(ngModel)]="row.amount" placeholder="Value">
+                  </div>
+                </div>
+              </div>
+              <button class="btn-ins-add-premium small-btn"
+                (click)="selectedSession.content.summary.customRows.push({label:'', type:'add', amount:0}); paginate()">
+                <svg class="plus-icon">
+                  <use [attr.href]="icons.plus"></use>
+                </svg>
+                Add Row
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary / Totals Table -->
+        <div class="ins-group" *ngIf="selectedSession.type === 'tax'">
+          <label>Totals Labels</label>
+          <div class="s-row" style="flex-direction: column; gap: 8px; margin-bottom: 12px;">
+            <input type="text" [(ngModel)]="selectedSession.content.labels.subtotal" placeholder="Subtotal Label">
+            <input type="text" [(ngModel)]="selectedSession.content.labels.taxRate" placeholder="Tax Rate (%) Label">
+            <input type="text" [(ngModel)]="selectedSession.content.labels.tax" placeholder="Tax Amount Label">
+            <input type="text" [(ngModel)]="selectedSession.content.labels.total" placeholder="Grand Total Label">
+          </div>
+
+          <label>Global Tax Rate (%)</label>
+          <input type="number" [(ngModel)]="selectedSession.content.rate" placeholder="Global Tax %">
+
+          <label style="margin-top: 16px;">Custom Summary Rows</label>
+          <div class="ins-items-list">
+            <div *ngFor="let row of selectedSession.content.customRows; let i = index" class="ins-item-row"
+              style="flex-wrap: wrap; gap: 6px;">
+              <input type="text" style="flex: 1; min-width: 100px;" [(ngModel)]="row.label"
+                placeholder="Row Label (e.g. Shipping)">
+              <div style="display: flex; gap: 6px; width: 100%;">
+                <select [(ngModel)]="row.type"
+                  style="flex: 1; padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-main); color: var(--text-main);">
+                  <option value="add">Add (+)</option>
+                  <option value="subtract">Subtract (-)</option>
+                </select>
+                <input type="number" style="flex: 1; min-width: 80px;" [(ngModel)]="row.amount" placeholder="Amount">
+                <button (click)="selectedSession.content.customRows.splice(i, 1); paginate()"
+                  style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
+              </div>
+            </div>
+            <div *ngIf="!selectedSession.content.customRows || selectedSession.content.customRows.length === 0"
+              class="ins-empty-layers" style="margin-bottom: 8px;">
+              No custom rows added.
+            </div>
+          </div>
+          <button class="btn-ins-add"
+            (click)="selectedSession.content.customRows.push({label:'', amount:0, type:'add'}); paginate()">+ Add Custom
+            Row</button>
         </div>
 
         <div class="ins-footer">
@@ -475,8 +677,13 @@
           <div class="s-row spacing-top">
             <div class="s-field">
               <span>Row Background</span>
-              <input type="color" [ngModel]="selectedSession.bgColor || '#ffffff'"
-                (ngModelChange)="selectedSession.bgColor = $event">
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.bgColor || '#ffffff'">
+                  <input type="color" [ngModel]="selectedSession.bgColor || '#ffffff'"
+                    (ngModelChange)="selectedSession.bgColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.bgColor || '#ffffff' }}</span>
+              </div>
             </div>
             <div class="s-field">
               <span>Internal Padding</span>
@@ -609,12 +816,23 @@
           <div class="s-row">
             <div class="s-field">
               <span>Text Color</span>
-              <input type="color" [ngModel]="selectedSession.textColor || '#000000'"
-                (ngModelChange)="selectedSession.textColor = $event">
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.textColor || '#000000'">
+                  <input type="color" [ngModel]="selectedSession.textColor || '#000000'"
+                    (ngModelChange)="selectedSession.textColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.textColor || '#000000' }}</span>
+              </div>
             </div>
             <div class="s-field">
               <span>Background</span>
-              <input type="color" [(ngModel)]="selectedSession.bgColor">
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.bgColor || '#ffffff'">
+                  <input type="color" [ngModel]="selectedSession.bgColor || '#ffffff'"
+                    (ngModelChange)="selectedSession.bgColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.bgColor || '#ffffff' }}</span>
+              </div>
             </div>
           </div>
           <div class="s-row spacing-top">
@@ -646,8 +864,7 @@
       </svg>
       <span>Canvas</span>
     </button>
-    <button [class.active]="mobileActiveView === 'properties'" (click)="mobileActiveView = 'properties'"
-      [disabled]="!selectedSessionId">
+    <button [class.active]="mobileActiveView === 'properties'" (click)="mobileActiveView = 'properties'">
       <svg>
         <use [attr.href]="icons.settings"></use>
       </svg>
@@ -718,16 +935,13 @@
     </div>
 
     <!-- Advanced Multi-Line Separator -->
-    <div class="canvas-line-group" *ngIf="s.type === 'line'" 
-         [style.width.%]="s.width || 100"
-         [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')">
-       <div *ngFor="let i of getNumberRange(s.content?.lineCount || 1)"
-            class="canvas-line-item"
-            [style.border-bottom-width.px]="s.height || 1"
-            [style.border-bottom-style]="'solid'"
-            [style.border-bottom-color]="s.textColor || theme.primaryColor"
-            [style.margin-bottom.px]="i < (s.content?.lineCount || 1) - 1 ? (s.content?.lineGap || 4) : 0">
-       </div>
+    <div class="canvas-line-group" *ngIf="s.type === 'line'" [style.width.%]="s.width || 100"
+      [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')">
+      <div *ngFor="let i of getNumberRange(s.content?.lineCount || 1)" class="canvas-line-item"
+        [style.border-bottom-width.px]="s.height || 1" [style.border-bottom-style]="'solid'"
+        [style.border-bottom-color]="s.textColor || theme.primaryColor"
+        [style.margin-bottom.px]="i < (s.content?.lineCount || 1) - 1 ? (s.content?.lineGap || 4) : 0">
+      </div>
     </div>
 
     <!-- Branding Module -->
@@ -764,36 +978,121 @@
       <table>
         <thead [style.background]="theme.primaryColor + '10'">
           <tr>
-            <th>Description</th>
-            <th class="text-center">Qty</th>
-            <th class="text-right">Price</th>
-            <th class="text-right">Amount</th>
+            <th *ngFor="let col of getVisibleColumns(s.content.columns)"
+              [class.text-center]="['slNo', 'qty'].includes(col.id)"
+              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id)"
+              [style.width]="col.id === 'slNo' ? '50px' : null">
+              {{ col.label }}
+            </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of s.content">
-            <td>{{ item.description || '—' }}</td>
-            <td class="text-center">{{ item.qty }}</td>
-            <td class="text-right">{{ theme.currency?.symbol }}{{ item.rate | number:'1.2-2' }}</td>
-            <td class="text-right">{{ theme.currency?.symbol }}{{ (item.qty * item.rate) | number:'1.2-2' }}</td>
+          <tr *ngFor="let item of (s.content.items || s.content); let i = index">
+            <td *ngFor="let col of getVisibleColumns(s.content.columns)"
+              [class.text-center]="['slNo', 'qty'].includes(col.id)"
+              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id)"
+              [style.font-weight]="col.id === 'slNo' ? '500' : null"
+              [style.color]="col.id === 'slNo' ? 'var(--text-muted)' : null">
+              <ng-container [ngSwitch]="col.id">
+                <ng-container *ngSwitchCase="'slNo'">{{ i + 1 }}</ng-container>
+                <ng-container *ngSwitchCase="'description'">{{ item.description || '—' }}</ng-container>
+                <ng-container *ngSwitchCase="'qty'">{{ item.qty }}</ng-container>
+                <ng-container *ngSwitchCase="'rate'">{{ theme.currency?.symbol }}{{ item.rate | number:'1.2-2'
+                  }}</ng-container>
+                <ng-container *ngSwitchCase="'tax'">{{ item.tax || 0 }}%</ng-container>
+                <ng-container *ngSwitchCase="'gst'">{{ item.gst || 0 }}%</ng-container>
+                <ng-container *ngSwitchCase="'discount'">{{ item.discount || 0 }}%</ng-container>
+                <ng-container *ngSwitchCase="'amount'">{{ theme.currency?.symbol }}{{ getItemLineTotal(item,
+                  s.content.columns) | number:'1.2-2' }}</ng-container>
+                <ng-container *ngSwitchDefault>{{ item[col.id] || '—' }}</ng-container>
+              </ng-container>
+            </td>
           </tr>
         </tbody>
+        <!-- Integrated Summary Box appended perfectly to table -->
+        <tfoot>
+          <tr>
+            <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
+              style="font-weight: 600; padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+              {{ s.content.summary?.labels?.subtotal || 'Subtotal' }}
+            </td>
+            <td class="text-right"
+              style="padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+              {{ theme.currency?.symbol }}{{ subtotal | number:'1.2-2' }}/-
+            </td>
+          </tr>
+          <tr *ngFor="let row of s.content.summary?.customRows">
+            <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              {{ row.label }}
+            </td>
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              {{ row.type === 'subtract' ? '-' : '' }}{{ theme.currency?.symbol }}{{ row.amount | number:'1.2-2' }}/-
+            </td>
+          </tr>
+          <tr *ngIf="taxRate > 0">
+            <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              {{ s.content.summary?.labels?.taxRate || 'Tax Rate (%)' }}
+            </td>
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              {{ taxRate }}%
+            </td>
+          </tr>
+          <tr *ngIf="taxRate > 0">
+            <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #000;">
+              {{ s.content.summary?.labels?.tax || 'Tax' }}
+            </td>
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #000;">
+              {{ theme.currency?.symbol }}{{ taxAmount | number:'1.2-2' }}/-
+            </td>
+          </tr>
+          <tr>
+            <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
+              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;">
+              {{ s.content.summary?.labels?.total || 'Grand Total' }}
+            </td>
+            <td class="text-right"
+              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;">
+              {{ theme.currency?.symbol }}{{ grandTotal | number:'1.2-2' }}/-
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
 
     <!-- Summary Box -->
     <div class="totals-summary" *ngIf="s.type === 'tax'">
-      <div class="sum-row">
-        <span>Subtotal</span>
-        <span>{{ theme.currency?.symbol }}{{ subtotal | number:'1.2-2' }}</span>
-      </div>
-      <div class="sum-row" *ngIf="taxRate > 0">
-        <span>Tax ({{ taxRate }}%)</span>
-        <span>{{ theme.currency?.symbol }}{{ taxAmount | number:'1.2-2' }}</span>
-      </div>
-      <div class="total-row" [style.background]="theme.primaryColor">
-        <span>Total Amount</span>
-        <strong>{{ theme.currency?.symbol }}{{ grandTotal | number:'1.2-2' }}</strong>
+      <div class="summary-table-wrapper" style="display: flex; justify-content: flex-end; width: 100%;">
+        <table class="summary-table"
+          style="width: auto; min-width: 300px; border-collapse: collapse; text-align: right; font-size: 13px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 8px 16px; font-weight: bold;">{{ s.content.labels?.subtotal || 'Subtotal' }}</td>
+              <td style="padding: 8px 16px;">{{ theme.currency?.symbol }} {{ subtotal | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngFor="let row of s.content.customRows" style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 8px 16px; font-weight: bold;">{{ row.label }}</td>
+              <td style="padding: 8px 16px;">{{ row.type === 'subtract' ? '-' : '' }}{{ theme.currency?.symbol }} {{
+                row.amount | number:'1.2-2' }}</td>
+            </tr>
+            <tr *ngIf="taxRate > 0" style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 8px 16px; font-weight: bold;">{{ s.content.labels?.taxRate || 'Tax Rate (%)' }}</td>
+              <td style="padding: 8px 16px;">{{ taxRate }}%</td>
+            </tr>
+            <tr *ngIf="taxRate > 0" style="border-bottom: 1px solid #000;">
+              <td style="padding: 8px 16px; font-weight: bold;">{{ s.content.labels?.tax || 'Tax' }}</td>
+              <td style="padding: 8px 16px;">{{ theme.currency?.symbol }} {{ taxAmount | number:'1.2-2' }}</td>
+            </tr>
+            <tr style="border-bottom: 2px solid #000;">
+              <td style="padding: 10px 16px; font-weight: 900; font-size: 14px;">{{ s.content.labels?.total || 'Grand
+                Total' }}</td>
+              <td style="padding: 10px 16px; font-weight: 900; font-size: 14px;">{{ theme.currency?.symbol }} {{
+                grandTotal | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

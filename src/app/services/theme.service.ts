@@ -75,6 +75,16 @@ export class ThemeService {
 
   private applyTheme(theme: Theme): void {
     const root = document.documentElement;
+    const currentTheme = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    
+    // Only apply the transition class if the theme is actually changing and the page has loaded
+    if (currentTheme !== theme && document.readyState === 'complete') {
+      document.body.classList.add('theme-transitioning');
+      setTimeout(() => {
+        document.body.classList.remove('theme-transitioning');
+      }, 400); // Wait for the 0.35s CSS transition to finish
+    }
+
     if (theme === 'light') {
       root.setAttribute('data-theme', 'light');
     } else {
