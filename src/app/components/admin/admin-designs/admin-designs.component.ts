@@ -7,6 +7,7 @@ import { ToastService } from '../../../services/toast.service';
 import { Icons } from '../../../utils/icons.util';
 import { Router } from '@angular/router';
 import { ToasterMessages } from '../../../utils/messages.util';
+import { getFriendlyDate } from '../../../utils/date.util';
 
 import { InvoiceThumbnailComponent } from '../../shared/invoice-thumbnail/invoice-thumbnail.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
@@ -20,6 +21,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
 })
 export class AdminDesignCenterComponent implements OnInit {
   icons = Icons;
+  getFriendlyDate = getFriendlyDate;
   templates: InvoiceTemplate[] = [];
   drafts: InvoiceRecord[] = []; // NEW: User's own WIP designs
   loading = false;

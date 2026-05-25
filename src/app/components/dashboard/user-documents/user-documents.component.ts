@@ -10,6 +10,7 @@ import { SearchService } from '../../../services/search.service';
 import { ToasterMessages } from '../../../utils/messages.util';
 import { Subscription } from 'rxjs';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
+import { getFriendlyDate } from '../../../utils/date.util';
 
 @Component({
   selector: 'app-user-documents',
@@ -26,6 +27,7 @@ export class UserDocumentsComponent implements OnInit, OnDestroy {
   private searchService = inject(SearchService);
 
   icons = Icons;
+  getFriendlyDate = getFriendlyDate;
   invoices: InvoiceRecord[] = [];
   viewMode: 'grid' | 'list' = 'grid';
   currentUser: User | null = null;

@@ -29,7 +29,7 @@ import { ToastService, Toast } from '../../services/toast.service';
       top: 24px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 9999;
+      z-index: 200000;
       display: flex;
       flex-direction: column;
       gap: 12px;

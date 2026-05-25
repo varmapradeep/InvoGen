@@ -43,6 +43,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   invoiceNo: string = '';
   invoiceDate: string = '';
   customerName: string = '';
+  invoiceName: string = 'Untitled Invoice';
   editId: string | null = null;
   activeTab: 'content' | 'design' | 'settings' = 'content';
   isSaving = false;
@@ -77,6 +78,23 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     'items': true,
     'finance': false,
     'footer': false
+  };
+  
+  // Custom Column Form State
+  showAddColumnForm: boolean = false;
+  showValidationErrors: boolean = false;
+  editingColumnId: string | null = null;
+  hasSavedCurrency: boolean = false;
+  newColumn: any = {
+    label: '',
+    type: 'text',
+    defaultValue: '',
+    isCalculated: false,
+    formula: {
+      fieldA: '',
+      operator: '',
+      fieldB: ''
+    }
   };
 
   // Mobile Responsiveness State
@@ -151,6 +169,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     
     this.auth.currentUser$.subscribe(user => {
       this.currentUser = user;
+      if (user && user.defaultCurrency && this.theme) {
+        if (!this.theme.currency || (this.theme.currency.code === 'USD' && this.theme.currency.symbol === '$')) {
+          this.theme.currency = { ...user.defaultCurrency };
+        }
+      }
     });
 
     combineLatest([this.route.params, this.route.queryParams]).subscribe(async ([params, qParams]) => {
@@ -194,6 +217,8 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   initNewInvoice() {
     this.invoiceNo = this.generateInvoiceNumber();
     this.invoiceDate = new Date().toISOString().split('T')[0];
+    this.invoiceName = 'Untitled Invoice';
+    this.hasSavedCurrency = false;
     this.theme = { 
       primaryColor: '#000000', 
       fontFamily: 'Inter',
@@ -212,9 +237,19 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       this.sessions = JSON.parse(JSON.stringify(data.fullData.sessions));
       this.upgradeSessions(this.sessions);
       this.theme = { ...data.fullData.theme };
+      this.hasSavedCurrency = !!this.theme.currency;
+      if (!this.theme.currency && this.currentUser?.defaultCurrency) {
+        this.theme.currency = { ...this.currentUser.defaultCurrency };
+      } else if (!this.theme.currency) {
+        this.theme.currency = { code: 'USD', symbol: '$' };
+      }
+      if (this.theme.currency && this.theme.currency.code === 'USD' && this.theme.currency.symbol === '$' && this.currentUser?.defaultCurrency) {
+        this.theme.currency = { ...this.currentUser.defaultCurrency };
+      }
       this.invoiceNo = data.invoiceNo;
       this.invoiceDate = data.dateCreated;
       this.customerName = data.customerName;
+      this.invoiceName = data.invoiceName || 'Untitled Invoice';
       this.initExpandedRows();
     }
   }
@@ -226,6 +261,16 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
        this.sessions = JSON.parse(JSON.stringify(template.fullData.sessions));
        this.upgradeSessions(this.sessions);
        this.theme = { ...template.fullData.theme };
+       this.hasSavedCurrency = !!this.theme.currency;
+       if ((!this.theme.currency || template.userId !== this.currentUser?.id) && this.currentUser?.defaultCurrency) {
+         this.theme.currency = { ...this.currentUser.defaultCurrency };
+       } else if (!this.theme.currency) {
+         this.theme.currency = { code: 'USD', symbol: '$' };
+       }
+       if (this.theme.currency && this.theme.currency.code === 'USD' && this.theme.currency.symbol === '$' && this.currentUser?.defaultCurrency) {
+         this.theme.currency = { ...this.currentUser.defaultCurrency };
+       }
+       this.invoiceName = template.name || 'Untitled Invoice';
        
        // If this is a Premium template and the user is not ADMIN → restrict
        if (template.isPremium && this.currentUser?.role !== 'ADMIN') {
@@ -315,35 +360,150 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   addCustomColumn() {
+    this.editingColumnId = null;
+    this.showAddColumnForm = true;
+    this.showValidationErrors = false;
+    this.newColumn = {
+      label: '',
+      type: 'text',
+      defaultValue: '',
+      isCalculated: false,
+      isCustom: true,
+      formula: {
+        fieldA: '',
+        operator: '',
+        fieldB: ''
+      },
+      headerBgColor: '',
+      headerTextColor: '',
+      textColor: ''
+    };
+  }
+
+  editColumn(col: any, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.editingColumnId = col.id;
+    this.showAddColumnForm = true;
+    this.showValidationErrors = false;
+    this.newColumn = {
+      label: col.label || '',
+      type: col.type || 'text',
+      defaultValue: col.defaultValue || '',
+      isCalculated: !!col.isCalculated,
+      isCustom: !!col.isCustom,
+      formula: col.formula ? { ...col.formula } : {
+        fieldA: '',
+        operator: '',
+        fieldB: ''
+      },
+      headerBgColor: col.headerBgColor || '',
+      headerTextColor: col.headerTextColor || '',
+      textColor: col.textColor || ''
+    };
+  }
+
+  cancelAddEditColumn() {
+    this.showAddColumnForm = false;
+    this.editingColumnId = null;
+    this.showValidationErrors = false;
+  }
+
+  confirmAddCustomColumn() {
+    this.showValidationErrors = true;
+
+    if (!this.newColumn.label.trim()) {
+      this.toast.warning('Please enter a column name.');
+      return;
+    }
+
+    if (this.newColumn.isCalculated) {
+      const f = this.newColumn.formula;
+      const isAInvalid = !f || !f.fieldA || String(f.fieldA).trim() === '' || f.fieldA === 'null' || f.fieldA === 'undefined';
+      const isOpInvalid = !f || !f.operator || String(f.operator).trim() === '' || f.operator === 'null' || f.operator === 'undefined';
+      const isBInvalid = !f || !f.fieldB || String(f.fieldB).trim() === '' || f.fieldB === 'null' || f.fieldB === 'undefined';
+
+      if (isAInvalid || isOpInvalid || isBInvalid) {
+        this.toast.warning('Please select First Field, Operator, and Second Field for the calculation.');
+        return;
+      }
+    }
+
     if (this.selectedSession?.type === 'items') {
+      this.snapshot();
       const columns = [...(this.selectedSession.content.columns || [])];
-      const customId = `custom_${Date.now()}`;
-      columns.push({
-        id: customId,
-        label: 'New Column',
-        visible: true,
-        isFixed: false,
-        isCustom: true
-      });
       
-      // Initialize empty value for this column in all existing items
-      if (this.selectedSession.content.items) {
-        this.selectedSession.content.items.forEach((item: any) => {
-          if (item[customId] === undefined) item[customId] = '';
+      let defaultVal = this.newColumn.defaultValue;
+      if (this.newColumn.type === 'date' && !defaultVal) {
+        defaultVal = new Date().toISOString().split('T')[0];
+      }
+
+      if (this.editingColumnId) {
+        // Edit existing column
+        const colIdx = columns.findIndex((c: any) => c.id === this.editingColumnId);
+        if (colIdx !== -1) {
+          const originalCol = columns[colIdx];
+          columns[colIdx] = {
+            ...originalCol,
+            label: this.newColumn.label,
+            type: this.newColumn.type,
+            isCalculated: !!this.newColumn.isCalculated,
+            formula: this.newColumn.isCalculated ? { ...this.newColumn.formula } : null,
+            headerBgColor: this.newColumn.headerBgColor || null,
+            headerTextColor: this.newColumn.headerTextColor || null,
+            textColor: this.newColumn.textColor || null
+          };
+        }
+        this.editingColumnId = null;
+        this.toast.success('Column settings updated!');
+      } else {
+        // Add new column
+        const customId = `custom_${Date.now()}`;
+        columns.push({
+          id: customId,
+          label: this.newColumn.label,
+          type: this.newColumn.type,
+          visible: true,
+          isFixed: false,
+          isCustom: true,
+          isCalculated: !!this.newColumn.isCalculated,
+          formula: this.newColumn.isCalculated ? { ...this.newColumn.formula } : null,
+          headerBgColor: this.newColumn.headerBgColor || null,
+          headerTextColor: this.newColumn.headerTextColor || null,
+          textColor: this.newColumn.textColor || null
         });
+        
+        // Initialize value for this column in all existing items
+        if (this.selectedSession.content.items) {
+          this.selectedSession.content.items.forEach((item: any) => {
+            if (item[customId] === undefined) item[customId] = defaultVal || '';
+          });
+        }
+        this.toast.success('Custom column added!');
       }
       
       this.selectedSession.content.columns = columns;
+      this.showAddColumnForm = false;
+      this.showValidationErrors = false;
       this.paginate();
     }
   }
 
   removeColumn(id: string) {
     if (this.selectedSession?.type === 'items') {
+      this.snapshot();
       const columns = [...(this.selectedSession.content.columns || [])];
       const idx = columns.findIndex((c: any) => c.id === id);
       if (idx !== -1) {
-        columns.splice(idx, 1);
+        const col = columns[idx];
+        if (col.isCustom) {
+          // Truly remove custom columns
+          columns.splice(idx, 1);
+        } else {
+          // For core columns, just hide them so they can be re-enabled or stay hidden
+          col.visible = false;
+        }
         this.selectedSession.content.columns = columns;
         this.paginate();
       }
@@ -365,8 +525,13 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
           session.content.summary = {
             rate: 0,
             labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
-            customRows: []
+            customRows: [],
+            showSubtotal: true,
+            showGrandTotal: true
           };
+        } else {
+          if (session.content.summary.showSubtotal === undefined) session.content.summary.showSubtotal = true;
+          if (session.content.summary.showGrandTotal === undefined) session.content.summary.showGrandTotal = true;
         }
         
         if (!session.content.columns) {
@@ -384,11 +549,26 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
           ];
         }
       } else if (session.type === 'tax') {
+        if (!session.content) {
+          session.content = {
+            rate: 0,
+            labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
+            customRows: [],
+            showSubtotal: true,
+            showGrandTotal: true
+          };
+        } else {
+          if (session.content.showSubtotal === undefined) session.content.showSubtotal = true;
+          if (session.content.showGrandTotal === undefined) session.content.showGrandTotal = true;
+        }
+
         if (typeof session.content?.rate === 'number' && !session.content.labels) {
           session.content = {
             rate: session.content.rate,
             labels: { subtotal: 'Subtotal', taxRate: 'Tax Rate (%)', tax: 'Tax', total: 'Grand Total' },
-            customRows: []
+            customRows: [],
+            showSubtotal: true,
+            showGrandTotal: true
           };
         }
       }
@@ -530,6 +710,13 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     return columns.filter(c => c.visible);
   }
 
+  hasExtraVisibleColumns(): boolean {
+    if (!this.selectedSession?.content?.columns) return false;
+    return this.selectedSession.content.columns.some((c: any) => 
+      c.visible && !['slNo', 'description', 'qty', 'rate', 'amount'].includes(c.id)
+    );
+  }
+
   get subtotal(): number {
     const itemsSession = this.findSessionRecursive(this.sessions, 'items');
     if (!itemsSession || !itemsSession.content) return 0;
@@ -539,6 +726,33 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     }
     
     const columns = itemsSession.content.columns || [];
+    const visibleCols = columns.filter((c: any) => c.visible);
+    
+    // Find the line total column by scanning from right to left
+    let totalCol = null;
+    for (let i = visibleCols.length - 1; i >= 0; i--) {
+      const col = visibleCols[i];
+      if (col.id === 'amount' || col.isCalculated || col.type === 'currency' || col.type === 'number') {
+        totalCol = col;
+        break;
+      }
+    }
+    
+    if (totalCol) {
+      return itemsSession.content.items.reduce((sum: number, item: any) => {
+        let val = 0;
+        if (totalCol.id === 'amount') {
+          val = this.getItemLineTotal(item, columns);
+        } else if (totalCol.isCalculated || totalCol.type === 'currency' || totalCol.type === 'number') {
+          val = parseFloat(this.getCustomColumnValue(item, totalCol)) || 0;
+        } else {
+          val = parseFloat(item[totalCol.id]) || 0;
+        }
+        return sum + val;
+      }, 0);
+    }
+    
+    // Fallback if no total column could be identified
     const isVisible = (id: string) => columns.find((c: any) => c.id === id)?.visible;
     return itemsSession.content.items.reduce((sum: number, item: any) => {
       let lineTotal = item.qty * item.rate;
@@ -556,6 +770,55 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     if (isVisible('gst') && item.gst) lineTotal += lineTotal * (item.gst / 100);
     if (isVisible('discount') && item.discount) lineTotal -= lineTotal * (item.discount / 100);
     return lineTotal;
+  }
+
+  getCustomColumnValue(item: any, col: any): any {
+    if (col.isCalculated && col.formula) {
+      const valA = parseFloat(this.resolveFieldValue(item, col.formula.fieldA) as any) || 0;
+      const valB = parseFloat(this.resolveFieldValue(item, col.formula.fieldB) as any) || 0;
+      let result = 0;
+      switch (col.formula.operator) {
+        case '+': result = valA + valB; break;
+        case '-': result = valA - valB; break;
+        case '*': result = valA * valB; break;
+        case '/': result = valB !== 0 ? valA / valB : 0; break;
+      }
+
+      // Automatically apply row-level Tax, GST, and Discount if they are visible in columns
+      const itemsSession = this.findSessionRecursive(this.sessions, 'items');
+      const cols = itemsSession?.content?.columns || [];
+      const visibleCols = cols.filter((c: any) => c.visible);
+      
+      // Determine if this is the final line total column (rightmost calculated/currency/number column)
+      let totalCol = null;
+      for (let i = visibleCols.length - 1; i >= 0; i--) {
+        const c = visibleCols[i];
+        if (c.id === 'amount' || c.isCalculated || c.type === 'currency' || c.type === 'number') {
+          totalCol = c;
+          break;
+        }
+      }
+
+      if (totalCol && col.id === totalCol.id) {
+        const isVisible = (id: string) => cols.find((c: any) => c.id === id)?.visible;
+        if (isVisible('tax') && item.tax) result += result * (item.tax / 100);
+        if (isVisible('gst') && item.gst) result += result * (item.gst / 100);
+        if (isVisible('discount') && item.discount) result -= result * (item.discount / 100);
+      }
+
+      item[col.id] = result;
+      return result;
+    } 
+    return item[col.id];
+  }
+
+  private resolveFieldValue(item: any, fieldId: string): number {
+    if (fieldId === 'amount') {
+      const itemsSession = this.findSessionRecursive(this.sessions, 'items');
+      const columns = itemsSession?.content?.columns || [];
+      return this.getItemLineTotal(item, columns);
+    }
+    return parseFloat(item[fieldId]) || 0;
   }
 
   get taxRate(): number {
@@ -705,10 +968,16 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!this.sessionToDelete) return;
     const id = this.sessionToDelete;
     this.snapshot();
+    let isColumn = false;
     const removeRecursive = (list: InvoiceSession[]) => {
       const idx = list.findIndex(s => s.id === id);
       if (idx !== -1) {
-        list.splice(idx, 1);
+        if (list[idx].type === 'layout-column') {
+          list[idx].sessions = [];
+          isColumn = true;
+        } else {
+          list.splice(idx, 1);
+        }
         return true;
       }
       for (const s of list) {
@@ -722,7 +991,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     this.selectedColumnId = null;
     this.isSaved = false;
     this.sessionToDelete = null;
-    this.toast.success('Element removed');
+    if (isColumn) {
+      this.toast.success('Column cleared');
+    } else {
+      this.toast.success('Element removed');
+    }
   }
 
   onCancelDelete() {
@@ -1030,9 +1303,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
         invoiceNo: finalInvoiceNo,
         dateCreated: this.invoiceDate,
         customerName: billedTo?.content.name || 'Unknown',
+        invoiceName: this.invoiceName,
         totalAmount: this.grandTotal,
         userId: this.currentUser.id,
         isDraft: true, // SAVE AS DRAFT
+        lastEdited: new Date().toISOString(),
         fullData: { sessions: this.sessions, theme: this.theme }
       };
 
@@ -1139,9 +1414,11 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       // If an existing template ID is set and the user owns it → UPDATE instead of creating a duplicate
       if (this.templateId) {
         await this.invoiceService.updateTemplate(this.templateId, templateData);
+        this.invoiceName = data.name!; // Update local name too
         this.toast.success('Template updated successfully!');
       } else {
         await this.invoiceService.saveTemplate({ ...templateData });
+        this.invoiceName = data.name!; // Update local name too
         this.toast.success('Template saved successfully!');
       }
     } catch (e) {

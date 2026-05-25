@@ -77,33 +77,37 @@
             (click)="selectSession(row.id); $event.stopPropagation()">
             <div class="drag-handle" cdkDragHandle>⠿</div>
 
-            <!-- Toggle collapse (click propagation stopped so row isn't selected) -->
-            <button class="tree-toggle" (click)="expandedRows[row.id] = !expandedRows[row.id]; $event.stopPropagation()"
-              [title]="expandedRows[row.id] ? 'Collapse' : 'Expand'">
-              {{ expandedRows[row.id] ? '▾' : '▸' }}
-            </button>
+            <div style="flex:1; display:flex; align-items:center; gap:4px;" (mousedown)="$event.stopPropagation()"
+              (touchstart)="$event.stopPropagation()">
+              <!-- Toggle collapse (click propagation stopped so row isn't selected) -->
+              <button class="tree-toggle"
+                (click)="expandedRows[row.id] = !expandedRows[row.id]; $event.stopPropagation()"
+                [title]="expandedRows[row.id] ? 'Collapse' : 'Expand'">
+                {{ expandedRows[row.id] ? '▾' : '▸' }}
+              </button>
 
-            <svg class="t-icon">
-              <use [attr.href]="icons.grid"></use>
-            </svg>
+              <svg class="t-icon">
+                <use [attr.href]="icons.grid"></use>
+              </svg>
 
-            <!-- Inline rename for row -->
-            <input *ngIf="editingNameId === row.id" class="t-rename-input"
-              [value]="getDisplayName(row.id, 'Row ' + (ri + 1))"
-              (blur)="confirmRename(row.id, $any($event.target).value)"
-              (keydown.enter)="confirmRename(row.id, $any($event.target).value)" (click)="$event.stopPropagation()"
-              autofocus>
-            <span *ngIf="editingNameId !== row.id" class="t-label" (dblclick)="startRename(row.id, $event)"
-              title="Double-click to rename">
-              {{ getDisplayName(row.id, 'Row ' + (ri + 1)) }}
-            </span>
-            <button *ngIf="editingNameId !== row.id" class="t-edit-btn" (click)="startRename(row.id, $event)"
-              title="Rename">
-              ✎
-            </button>
+              <!-- Inline rename for row -->
+              <input *ngIf="editingNameId === row.id" class="t-rename-input"
+                [value]="getDisplayName(row.id, 'Row ' + (ri + 1))"
+                (blur)="confirmRename(row.id, $any($event.target).value)"
+                (keydown.enter)="confirmRename(row.id, $any($event.target).value)" (click)="$event.stopPropagation()"
+                autofocus>
+              <span *ngIf="editingNameId !== row.id" class="t-label" (dblclick)="startRename(row.id, $event)"
+                title="Double-click to rename">
+                {{ getDisplayName(row.id, 'Row ' + (ri + 1)) }}
+              </span>
+              <button *ngIf="editingNameId !== row.id" class="t-edit-btn" (click)="startRename(row.id, $event)"
+                title="Rename">
+                ✎
+              </button>
 
-            <span class="t-badge row-badge">{{ row.sessions?.length || 0 }} col</span>
-            <button class="t-del" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
+              <span class="t-badge row-badge">{{ row.sessions?.length || 0 }} col</span>
+              <button class="t-del" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
+            </div>
           </div>
 
           <!-- Columns — only shown when row is expanded -->
@@ -151,26 +155,31 @@
                 <div *ngFor="let el of col.sessions" cdkDrag [cdkDragData]="el" class="tree-el-node"
                   [class.selected]="selectedSessionId === el.id"
                   (click)="selectSession(el.id); $event.stopPropagation()">
-                  <div class="drag-handle el-drag" cdkDragHandle>⠿</div>
-                  <span class="el-type-badge">{{ el.type }}</span>
+                  <div class="drag-handle el-drag" cdkDragHandle style="cursor: grab;">⠿</div>
 
-                  <!-- Inline rename for element -->
-                  <input *ngIf="editingNameId === el.id" class="t-rename-input" [value]="getDisplayName(el.id, el.type)"
-                    (blur)="confirmRename(el.id, $any($event.target).value)"
-                    (keydown.enter)="confirmRename(el.id, $any($event.target).value)" (click)="$event.stopPropagation()"
-                    autofocus>
-                  <span *ngIf="editingNameId !== el.id" class="t-label truncate" (dblclick)="startRename(el.id, $event)"
-                    title="Double-click to rename">
-                    {{ getDisplayName(el.id, (el.type !== 'image' && el.type !== 'items' && isString(el.content)) ? (''
-                    +
-                    el.content).slice(0,16) : el.type) }}
-                  </span>
-                  <button *ngIf="editingNameId !== el.id" class="t-edit-btn" (click)="startRename(el.id, $event)"
-                    title="Rename">
-                    ✎
-                  </button>
+                  <div style="flex:1; display:flex; align-items:center; gap:4px;" (mousedown)="$event.stopPropagation()"
+                    (touchstart)="$event.stopPropagation()">
+                    <span class="el-type-badge">{{ el.type }}</span>
 
-                  <button class="t-del" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
+                    <!-- Inline rename for element -->
+                    <input *ngIf="editingNameId === el.id" class="t-rename-input"
+                      [value]="getDisplayName(el.id, el.type)" (blur)="confirmRename(el.id, $any($event.target).value)"
+                      (keydown.enter)="confirmRename(el.id, $any($event.target).value)"
+                      (click)="$event.stopPropagation()" autofocus>
+                    <span *ngIf="editingNameId !== el.id" class="t-label truncate"
+                      (dblclick)="startRename(el.id, $event)" title="Double-click to rename">
+                      {{ getDisplayName(el.id, (el.type !== 'image' && el.type !== 'items' && isString(el.content)) ?
+                      (''
+                      +
+                      el.content).slice(0,16) : el.type) }}
+                    </span>
+                    <button *ngIf="editingNameId !== el.id" class="t-edit-btn" (click)="startRename(el.id, $event)"
+                      title="Rename">
+                      ✎
+                    </button>
+
+                    <button class="t-del" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
+                  </div>
                   <div *cdkDragPlaceholder class="layer-placeholder"></div>
                 </div>
 
@@ -192,13 +201,19 @@
   </aside>
 
   <!-- MIDDLE: Canvas Area -->
-  <main class="builder-preview" [style.--accent-color]="theme.primaryColor">
+  <main class="builder-preview">
     <header class="preview-toolbar">
       <div class="zoom-controls">
         <button (click)="zoomOut()" title="Zoom Out">−</button>
         <span>{{ (zoomLevel * 100) | number:'1.0-0' }}%</span>
         <button (click)="zoomIn()" title="Zoom In">+</button>
         <button (click)="resetZoom()" title="Fit to Screen" style="font-size: 11px; margin-left: 5px;">Fit</button>
+      </div>
+
+      <!-- Invoice Name Editor -->
+      <div class="invoice-name-editor">
+        <input type="text" [(ngModel)]="invoiceName" placeholder="Enter invoice name..." class="invoice-name-input">
+        <div class="edit-hint">✎</div>
       </div>
       <div class="preview-actions">
         <button class="btn-icon-action" (click)="undo()" [disabled]="!canUndo" title="Undo (Ctrl+Z)">↩ Undo</button>
@@ -211,7 +226,8 @@
     <div class="preview-scroll-area" #previewScrollArea (wheel)="onWheelZoom($event)"
       (touchstart)="onPinchStart($event)" (touchmove)="onPinchMove($event)" (touchend)="onPinchEnd()"
       (click)="selectedSessionId = null; selectedColumnId = null">
-      <div class="a4-wrapper" [style.transform]="'scale(' + zoomLevel + ')'">
+      <div class="a4-wrapper" [style.transform]="'scale(' + zoomLevel + ')'"
+        [style.--accent-color]="theme.primaryColor">
         <div id="invoiceDoc" class="multi-page-container">
 
           <div *ngFor="let page of computedPages; let pi = index" class="a4-page">
@@ -470,7 +486,7 @@
           <label class="ins-label-premium">Column Enabler</label>
           <div class="column-enabler-grid">
             <ng-container *ngFor="let col of selectedSession.content.columns">
-              <label class="enabler-item" *ngIf="!col.isFixed">
+              <label class="enabler-item" *ngIf="!col.isFixed && !col.isCustom">
                 <span class="enabler-label">{{ col.id | uppercase }}</span>
                 <div class="t-switch">
                   <input type="checkbox" [(ngModel)]="col.visible" (change)="paginate()">
@@ -481,134 +497,216 @@
           </div>
 
           <label class="spacing-top">Column Manager (Visible)</label>
-          <div class="col-manager-list" cdkDropList (cdkDropListDropped)="dropColumn($event)">
+          <div class="col-manager-list" cdkDropList (cdkDropListDropped)="dropColumn($event)"
+            style="max-height: 300px; overflow-y: auto;">
             <ng-container *ngFor="let col of selectedSession.content.columns; let ci = index; trackBy: trackByColumnId">
               <div *ngIf="col.visible" cdkDrag [cdkDragDisabled]="col.id === 'slNo'" class="ins-item-row"
                 style="display:flex; align-items:center; gap:8px; margin-bottom:6px; padding: 10px 12px; background: var(--nav-hover-bg); border: 1px dashed var(--accent-color); border-radius: 12px;">
-                <div class="drag-handle" *ngIf="col.id !== 'slNo'" cdkDragHandle
-                  style="color:var(--accent-color); cursor:grab; font-size:12px; display:flex; align-items:center;">⠿
-                </div>
-                <div class="drag-handle fixed-handle" *ngIf="col.id === 'slNo'"
-                  style="color:var(--text-muted); cursor:default; font-size:12px; display:flex; align-items:center;">🔒
+                <div class="drag-handle" cdkDragHandle
+                  style="color:var(--accent-color); cursor:grab; font-size:12px; align-items:center;">⠿
                 </div>
 
-                <input type="text" [(ngModel)]="col.label"
-                  style="flex:1; background:transparent; border:none; outline:none; color:var(--text-main); font-weight:600; font-size:12px;"
-                  [placeholder]="col.id" (change)="paginate()">
-                <button class="btn-delete-row" *ngIf="col.id !== 'slNo'" (click)="removeColumn(col.id)"
-                  style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
+                <div style="flex:1; display:flex; align-items:center; gap:8px;" (mousedown)="$event.stopPropagation()"
+                  (touchstart)="$event.stopPropagation()">
+                  <input type="text" [(ngModel)]="col.label"
+                    style="flex:1; background:transparent; border:none; outline:none; color:var(--text-main); font-weight:600; font-size:12px;"
+                    [placeholder]="col.isCustom ? 'Enter custom header name' : col.id" (change)="paginate()">
+                  <button class="btn-edit-column" (click)="editColumn(col, $event)"
+                    style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:0 4px; display:flex; align-items:center;"
+                    title="Edit settings">
+                    <svg style="width:12px; height:12px; fill:currentColor;">
+                      <use [attr.href]="icons.edit"></use>
+                    </svg>
+                  </button>
+                  <button class="btn-delete-row" (click)="removeColumn(col.id)"
+                    style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
+                </div>
               </div>
             </ng-container>
           </div>
-          <button class="btn-ins-add-premium small-btn" style="margin-top: 8px;" (click)="addCustomColumn()">
+          <button class="btn-ins-add-premium small-btn" style="margin-top: 8px;" (click)="addCustomColumn()"
+            *ngIf="!showAddColumnForm">
             <svg class="plus-icon">
               <use [attr.href]="icons.plus"></use>
             </svg>
             Add Custom Header
           </button>
 
-          <label class="ins-label-premium spacing-top">Items List</label>
-          <div class="ins-items-list-premium" cdkDropList (cdkDropListDropped)="dropItem($event)">
-            <div *ngFor="let item of selectedSession.content.items; let i = index" cdkDrag class="premium-item-card">
-              <div class="drag-handle" cdkDragHandle>⠿</div>
-              <div class="card-main">
-                <input type="text" [(ngModel)]="item.description" placeholder="Item Description" class="desc-input">
-                <button class="btn-delete-item" (click)="selectedSession.content.items.splice(i, 1); paginate()"
-                  *ngIf="selectedSession.content.items.length > 1">×</button>
-              </div>
-              <div class="card-values">
-                <div class="val-input">
-                  <span class="v-tag">QTY</span>
-                  <input type="number" [(ngModel)]="item.qty" (change)="paginate()">
-                </div>
-                <div class="val-input">
-                  <span class="v-tag">RATE</span>
-                  <input type="number" [(ngModel)]="item.rate" (change)="paginate()">
-                </div>
-                <div class="val-input" *ngIf="selectedSession.content.options.showTax">
-                  <span class="v-tag">TAX%</span>
-                  <input type="number" [(ngModel)]="item.tax" (change)="paginate()">
-                </div>
-                <div class="val-input" *ngIf="selectedSession.content.options.showGst">
-                  <span class="v-tag">GST%</span>
-                  <input type="number" [(ngModel)]="item.gst" (change)="paginate()">
-                </div>
-                <div class="val-input" *ngIf="selectedSession.content.options.showDiscount">
-                  <span class="v-tag">DISC%</span>
-                  <input type="number" [(ngModel)]="item.discount" (change)="paginate()">
-                </div>
-                <!-- Custom Column Inputs -->
-                <ng-container *ngFor="let col of selectedSession.content.columns">
-                  <div class="val-input" *ngIf="col.isCustom && col.visible">
-                    <span class="v-tag">{{ col.label | uppercase }}</span>
-                    <input type="text" [(ngModel)]="item[col.id]" (change)="paginate()" placeholder="Value">
+          <div class="tabular-items-editor">
+            <div class="ins-items-list-premium tabular-list" cdkDropList (cdkDropListDropped)="dropItem($event)">
+              <div *ngFor="let item of selectedSession.content.items; let i = index" cdkDrag class="tabular-item-row">
+                <div class="row-inputs-grid">
+                  <ng-container *ngFor="let col of selectedSession.content.columns">
+                    <div class="input-field-group" *ngIf="col.visible" [ngClass]="col.id">
+                      <span class="field-label">{{ col.label | uppercase }}</span>
+
+                      <!-- Amount (Calculated Read-only) -->
+                      <ng-container *ngIf="col.id === 'amount'; else calculatedField">
+                        <div class="tab-amt">
+                          <span>{{ theme.currency?.symbol }}{{ getItemLineTotal(item, selectedSession.content.columns) |
+                            number:'1.2-2' }}</span>
+                        </div>
+                      </ng-container>
+
+                      <!-- Calculated Custom Field (Read-only) -->
+                      <ng-template #calculatedField>
+                        <ng-container *ngIf="col.isCalculated; else slNoField">
+                          <div class="tab-amt">
+                            <span>
+                              <ng-container [ngSwitch]="col.type">
+                                <span *ngSwitchCase="'currency'">{{ theme.currency?.symbol }}{{
+                                  (getCustomColumnValue(item, col) || 0) | number:'1.2-2' }}</span>
+                                <span *ngSwitchCase="'number'">{{ (getCustomColumnValue(item, col) || 0) |
+                                  number:'1.0-2' }}</span>
+                                <span *ngSwitchCase="'percentage'">{{ getCustomColumnValue(item, col) || 0 }}%</span>
+                                <span *ngSwitchCase="'date'">{{ getCustomColumnValue(item, col) | date:'mediumDate'
+                                  }}</span>
+                                <span *ngSwitchDefault>{{ getCustomColumnValue(item, col) }}</span>
+                              </ng-container>
+                            </span>
+                          </div>
+                        </ng-container>
+                      </ng-template>
+
+                      <!-- Serial Number (Read-only) -->
+                      <ng-template #slNoField>
+                        <ng-container *ngIf="col.id === 'slNo'; else editableField">
+                          <div class="tab-slno">
+                            <span>{{ i + 1 }}</span>
+                          </div>
+                        </ng-container>
+                      </ng-template>
+
+                      <!-- Editable Fields based on col.type or col.id -->
+                      <ng-template #editableField>
+                        <ng-container
+                          [ngSwitch]="col.type || (col.id === 'rate' ? 'currency' : (['qty', 'tax', 'gst', 'discount'].includes(col.id) ? 'number' : 'text'))">
+                          <!-- Currency Type -->
+                          <div class="input-with-currency" *ngSwitchCase="'currency'">
+                            <span class="currency-symbol">{{ theme.currency?.symbol }}</span>
+                            <input type="number" [(ngModel)]="item[col.id]" placeholder="0.00"
+                              class="tab-input currency-input" (change)="paginate()">
+                          </div>
+
+                          <!-- Percentage Type -->
+                          <div class="input-with-percent" *ngSwitchCase="'percentage'">
+                            <input type="number" [(ngModel)]="item[col.id]" placeholder="0"
+                              class="tab-input percent-input" (change)="paginate()">
+                            <span class="percent-symbol">%</span>
+                          </div>
+
+                          <!-- Date Type -->
+                          <input *ngSwitchCase="'date'" type="date" [(ngModel)]="item[col.id]" class="tab-input"
+                            (change)="paginate()">
+
+                          <!-- Number Type -->
+                          <input *ngSwitchCase="'number'" type="number" [(ngModel)]="item[col.id]" placeholder="0"
+                            class="tab-input" (change)="paginate()">
+
+                          <!-- Text/Default Type -->
+                          <input *ngSwitchDefault type="text" [(ngModel)]="item[col.id]"
+                            placeholder="Enter {{ col.label | lowercase }}..." class="tab-input" (change)="paginate()">
+                        </ng-container>
+                      </ng-template>
+                    </div>
+                  </ng-container>
+
+                  <!-- Delete Item Button -->
+                  <div class="delete-btn-group">
+                    <button class="btn-delete-tabular" (click)="selectedSession.content.items.splice(i, 1); paginate()"
+                      *ngIf="selectedSession.content.items.length > 1" title="Delete Item">×</button>
                   </div>
-                </ng-container>
+                </div>
               </div>
             </div>
           </div>
-          <button class="btn-ins-add-premium"
+
+          <button class="btn-add-item-dashed"
             (click)="selectedSession.content.items.push({description:'', qty:1, rate:0, tax:0, gst:0, discount:0}); paginate()">
-            <svg class="plus-icon">
-              <use [attr.href]="icons.plus"></use>
-            </svg>
-            Add New Item
+            + Add Item
           </button>
 
-          <!-- Built-in Summary Configuration -->
-          <div class="summary-config-section">
-            <label class="ins-label-premium">Summary Options</label>
-            <div class="summary-fields-grid">
-              <div class="field-wrap">
-                <span class="field-tag">Subtotal</span>
-                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.subtotal" placeholder="Label">
-              </div>
-              <div class="field-wrap">
-                <span class="field-tag">Tax Rate</span>
-                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.taxRate" placeholder="Label">
-              </div>
-              <div class="field-wrap">
-                <span class="field-tag">Tax Amt</span>
-                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.tax" placeholder="Label">
-              </div>
-              <div class="field-wrap">
-                <span class="field-tag">Total</span>
-                <input type="text" [(ngModel)]="selectedSession.content.summary.labels.total" placeholder="Label">
+          <!-- Polished Summary Section -->
+          <div class="polished-summary-box spacing-top">
+            <div class="sum-config-inputs">
+              <div class="global-tax-row">
+                <label>Tax Rate (%)</label>
+                <input type="number" [(ngModel)]="selectedSession.content.summary.rate" (change)="paginate()">
               </div>
             </div>
 
-            <div class="global-tax-wrap">
-              <label class="ins-label-premium">Global Tax Rate (%)</label>
-              <input type="number" [(ngModel)]="selectedSession.content.summary.rate" class="premium-input"
-                placeholder="0">
-            </div>
-
-            <div class="custom-rows-section">
-              <label class="ins-label-premium">Custom Summary Rows</label>
-              <div class="ins-items-list">
-                <div *ngFor="let row of selectedSession.content.summary.customRows; let i = index"
-                  class="premium-summary-row">
-                  <div class="row-main">
-                    <input type="text" [(ngModel)]="row.label" placeholder="Header (e.g. Shipping)">
-                    <button class="btn-delete-row"
-                      (click)="selectedSession.content.summary.customRows.splice(i, 1); paginate()">×</button>
-                  </div>
-                  <div class="row-details">
-                    <select [(ngModel)]="row.type">
-                      <option value="add">Add (+)</option>
-                      <option value="subtract">Subtract (-)</option>
-                    </select>
-                    <input type="number" [(ngModel)]="row.amount" placeholder="Value">
-                  </div>
+            <!-- Subtotal & Grand Total Toggles -->
+            <div class="summary-toggles-grid"
+              style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0;">
+              <label
+                style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+                <span
+                  style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Subtotal</span>
+                <div class="t-switch">
+                  <input type="checkbox" [ngModel]="selectedSession.content.summary.showSubtotal !== false"
+                    (ngModelChange)="selectedSession.content.summary.showSubtotal = $event; paginate()">
+                  <span class="slider"></span>
                 </div>
+              </label>
+              <label
+                style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+                <span
+                  style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Grand
+                  Total</span>
+                <div class="t-switch">
+                  <input type="checkbox" [ngModel]="selectedSession.content.summary.showGrandTotal !== false"
+                    (ngModelChange)="selectedSession.content.summary.showGrandTotal = $event; paginate()">
+                  <span class="slider"></span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Custom Rows Editor (Compact) -->
+            <div class="custom-sum-rows-list" *ngIf="selectedSession.content.summary.customRows?.length">
+              <div *ngFor="let row of selectedSession.content.summary.customRows; let ri = index"
+                class="compact-sum-edit-row">
+                <input type="text" [(ngModel)]="row.label" placeholder="Label">
+                <select [(ngModel)]="row.type" (change)="paginate()">
+                  <option value="add">+</option>
+                  <option value="subtract">-</option>
+                </select>
+                <input type="number" [(ngModel)]="row.amount" (change)="paginate()">
+                <button (click)="selectedSession.content.summary.customRows.splice(ri, 1); paginate()">×</button>
               </div>
-              <button class="btn-ins-add-premium small-btn"
-                (click)="selectedSession.content.summary.customRows.push({label:'', type:'add', amount:0}); paginate()">
-                <svg class="plus-icon">
-                  <use [attr.href]="icons.plus"></use>
-                </svg>
-                Add Row
-              </button>
+            </div>
+
+            <button class="btn-add-sum-row"
+              (click)="selectedSession.content.summary.customRows.push({label:'', type:'add', amount:0})">
+              + Add Summary Row
+            </button>
+
+            <!-- Visual Summary Preview (Exactly like screenshot) -->
+            <div class="summary-preview-card">
+              <div class="p-row" *ngIf="selectedSession.content.summary.showSubtotal !== false">
+                <span class="p-label">{{ selectedSession.content.summary.labels.subtotal }}</span>
+                <span class="p-val">{{ theme.currency?.symbol }} {{ subtotal | number:'1.2-2' }}/-</span>
+              </div>
+
+              <div class="p-row" *ngIf="taxRate > 0">
+                <span class="p-label">{{ selectedSession.content.summary.labels.taxRate }}</span>
+                <span class="p-val">{{ taxRate | number:'1.2-2' }}%</span>
+              </div>
+
+              <div class="p-row" *ngIf="taxRate > 0">
+                <span class="p-label">{{ selectedSession.content.summary.labels.tax }}</span>
+                <span class="p-val">{{ theme.currency?.symbol }} {{ taxAmount | number:'1.2-2' }}/-</span>
+              </div>
+
+              <div class="p-row" *ngFor="let row of selectedSession.content.summary.customRows">
+                <span class="p-label">{{ row.label || 'Other' }}</span>
+                <span class="p-val">{{ row.type === 'subtract' ? '-' : '' }}{{ theme.currency?.symbol }} {{ row.amount |
+                  number:'1.2-2' }}/-</span>
+              </div>
+
+              <div class="p-row grand-total" *ngIf="selectedSession.content.summary.showGrandTotal !== false">
+                <span class="p-label">{{ selectedSession.content.summary.labels.total }}</span>
+                <span class="p-val">{{ theme.currency?.symbol }} {{ grandTotal | number:'1.2-2' }}/-</span>
+              </div>
             </div>
           </div>
         </div>
@@ -624,7 +722,34 @@
           </div>
 
           <label>Global Tax Rate (%)</label>
-          <input type="number" [(ngModel)]="selectedSession.content.rate" placeholder="Global Tax %">
+          <input type="number" [(ngModel)]="selectedSession.content.rate" placeholder="Global Tax %"
+            (change)="paginate()">
+
+          <!-- Subtotal & Grand Total Toggles -->
+          <div class="summary-toggles-grid"
+            style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0;">
+            <label
+              style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+              <span
+                style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Subtotal</span>
+              <div class="t-switch">
+                <input type="checkbox" [ngModel]="selectedSession.content.showSubtotal !== false"
+                  (ngModelChange)="selectedSession.content.showSubtotal = $event; paginate()">
+                <span class="slider"></span>
+              </div>
+            </label>
+            <label
+              style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+              <span
+                style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Grand
+                Total</span>
+              <div class="t-switch">
+                <input type="checkbox" [ngModel]="selectedSession.content.showGrandTotal !== false"
+                  (ngModelChange)="selectedSession.content.showGrandTotal = $event; paginate()">
+                <span class="slider"></span>
+              </div>
+            </label>
+          </div>
 
           <label style="margin-top: 16px;">Custom Summary Rows</label>
           <div class="ins-items-list">
@@ -767,9 +892,71 @@
           </div>
         </div>
 
+        <!-- Table UI Customization (For Items/Table Session) -->
+        <div class="ins-section" *ngIf="selectedSession.type === 'items'">
+          <label>Table Styling</label>
+          <div class="s-row">
+            <div class="s-field">
+              <span>Header Background</span>
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.headerBgColor || '#f1f5f9'">
+                  <input type="color" [ngModel]="selectedSession.headerBgColor || '#f1f5f9'"
+                    (ngModelChange)="selectedSession.headerBgColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.headerBgColor || 'Default' }}</span>
+              </div>
+            </div>
+            <div class="s-field">
+              <span>Header Font Color</span>
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.headerTextColor || '#1f2937'">
+                  <input type="color" [ngModel]="selectedSession.headerTextColor || '#1f2937'"
+                    (ngModelChange)="selectedSession.headerTextColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.headerTextColor || 'Default' }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="s-row spacing-top">
+            <div class="s-field">
+              <span>Row Font Color</span>
+              <div class="color-picker-wrapper">
+                <div class="color-swatch" [style.background]="selectedSession.valueTextColor || '#374151'">
+                  <input type="color" [ngModel]="selectedSession.valueTextColor || '#374151'"
+                    (ngModelChange)="selectedSession.valueTextColor = $event">
+                </div>
+                <span class="color-value">{{ selectedSession.valueTextColor || 'Default' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <label class="spacing-top">Table Layout Options</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            <label
+              style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+              <span style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Grid
+                Borders</span>
+              <div class="t-switch">
+                <input type="checkbox" [(ngModel)]="selectedSession.showBorders">
+                <span class="slider"></span>
+              </div>
+            </label>
+            <label
+              style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">
+              <span
+                style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Striped
+                Rows</span>
+              <div class="t-switch">
+                <input type="checkbox" [(ngModel)]="selectedSession.stripedRows">
+                <span class="slider"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <!-- Typography (Text Components) -->
         <div class="ins-section"
-          *ngIf="!['layout-row', 'layout-column', 'line', 'image', 'spacer'].includes(selectedSession.type)">
+          *ngIf="!['layout-row', 'layout-column', 'line', 'image', 'spacer', 'items'].includes(selectedSession.type)">
           <label>Typography</label>
           <div class="s-row">
             <div class="s-field">
@@ -811,7 +998,7 @@
         </div>
 
         <!-- Colors & Visuals -->
-        <div class="ins-section" *ngIf="selectedSession.type !== 'layout-row'">
+        <div class="ins-section" *ngIf="!['layout-row', 'items'].includes(selectedSession.type)">
           <label>Component Appearance</label>
           <div class="s-row">
             <div class="s-field">
@@ -974,14 +1161,17 @@
     </div>
 
     <!-- Items Table -->
-    <div *ngIf="s.type === 'items'" class="items-table-view">
+    <div *ngIf="s.type === 'items'" class="items-table-view" [class.table-striped]="s.stripedRows"
+      [class.table-bordered]="s.showBorders">
       <table>
-        <thead [style.background]="theme.primaryColor + '10'">
+        <thead [style.background]="s.headerBgColor || theme.primaryColor + '10'"
+          [style.color]="s.headerTextColor || '#1f2937'">
           <tr>
             <th *ngFor="let col of getVisibleColumns(s.content.columns)"
               [class.text-center]="['slNo', 'qty'].includes(col.id)"
-              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id)"
-              [style.width]="col.id === 'slNo' ? '50px' : null">
+              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id) || ['currency', 'number', 'percentage'].includes(col.type) || col.isCalculated"
+              [style.width]="col.id === 'slNo' ? '50px' : null" [style.background]="col.headerBgColor || null"
+              [style.color]="col.headerTextColor || s.headerTextColor || '#1f2937'">
               {{ col.label }}
             </th>
           </tr>
@@ -990,9 +1180,9 @@
           <tr *ngFor="let item of (s.content.items || s.content); let i = index">
             <td *ngFor="let col of getVisibleColumns(s.content.columns)"
               [class.text-center]="['slNo', 'qty'].includes(col.id)"
-              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id)"
+              [class.text-right]="['rate', 'tax', 'gst', 'discount', 'amount'].includes(col.id) || ['currency', 'number', 'percentage'].includes(col.type) || col.isCalculated"
               [style.font-weight]="col.id === 'slNo' ? '500' : null"
-              [style.color]="col.id === 'slNo' ? 'var(--text-muted)' : null">
+              [style.color]="col.textColor || s.valueTextColor || '#374151'">
               <ng-container [ngSwitch]="col.id">
                 <ng-container *ngSwitchCase="'slNo'">{{ i + 1 }}</ng-container>
                 <ng-container *ngSwitchCase="'description'">{{ item.description || '—' }}</ng-container>
@@ -1004,57 +1194,77 @@
                 <ng-container *ngSwitchCase="'discount'">{{ item.discount || 0 }}%</ng-container>
                 <ng-container *ngSwitchCase="'amount'">{{ theme.currency?.symbol }}{{ getItemLineTotal(item,
                   s.content.columns) | number:'1.2-2' }}</ng-container>
-                <ng-container *ngSwitchDefault>{{ item[col.id] || '—' }}</ng-container>
+                <ng-container *ngSwitchDefault>
+                  <ng-container [ngSwitch]="col.type">
+                    <span *ngSwitchCase="'currency'">{{ theme.currency?.symbol }}{{ (getCustomColumnValue(item, col) ||
+                      0) | number:'1.2-2'
+                      }}</span>
+                    <span *ngSwitchCase="'number'">{{ (getCustomColumnValue(item, col) || 0) | number:'1.0-2' }}</span>
+                    <span *ngSwitchCase="'percentage'">{{ getCustomColumnValue(item, col) || 0 }}%</span>
+                    <span *ngSwitchCase="'date'">{{ getCustomColumnValue(item, col) | date:'mediumDate' }}</span>
+                    <span *ngSwitchDefault>{{ getCustomColumnValue(item, col) || '—' }}</span>
+                  </ng-container>
+                </ng-container>
               </ng-container>
             </td>
           </tr>
         </tbody>
         <!-- Integrated Summary Box appended perfectly to table -->
         <tfoot>
-          <tr>
+          <tr *ngIf="s.content.summary?.showSubtotal !== false">
             <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
-              style="font-weight: 600; padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+              style="font-weight: 600; padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ s.content.summary?.labels?.subtotal || 'Subtotal' }}
             </td>
             <td class="text-right"
-              style="padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+              style="padding: 12px 16px 8px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ theme.currency?.symbol }}{{ subtotal | number:'1.2-2' }}/-
             </td>
           </tr>
           <tr *ngFor="let row of s.content.summary?.customRows">
             <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
-              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ row.label }}
             </td>
-            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ row.type === 'subtract' ? '-' : '' }}{{ theme.currency?.symbol }}{{ row.amount | number:'1.2-2' }}/-
             </td>
           </tr>
           <tr *ngIf="taxRate > 0">
             <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
-              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ s.content.summary?.labels?.taxRate || 'Tax Rate (%)' }}
             </td>
-            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;">
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #e2e8f0;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ taxRate }}%
             </td>
           </tr>
           <tr *ngIf="taxRate > 0">
             <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
-              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #000;">
+              style="font-weight: 600; padding: 8px 16px; border-bottom: 1px solid #000;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ s.content.summary?.labels?.tax || 'Tax' }}
             </td>
-            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #000;">
+            <td class="text-right" style="padding: 8px 16px; border-bottom: 1px solid #000;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ theme.currency?.symbol }}{{ taxAmount | number:'1.2-2' }}/-
             </td>
           </tr>
-          <tr>
+          <tr *ngIf="s.content.summary?.showGrandTotal !== false">
             <td [attr.colspan]="getVisibleColumns(s.content.columns).length - 1" class="text-right"
-              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;">
+              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ s.content.summary?.labels?.total || 'Grand Total' }}
             </td>
             <td class="text-right"
-              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;">
+              style="font-weight: 900; font-size: 14px; padding: 12px 16px; border-bottom: 2px solid #000;"
+              [style.color]="s.valueTextColor || '#374151'">
               {{ theme.currency?.symbol }}{{ grandTotal | number:'1.2-2' }}/-
             </td>
           </tr>
@@ -1068,7 +1278,7 @@
         <table class="summary-table"
           style="width: auto; min-width: 300px; border-collapse: collapse; text-align: right; font-size: 13px;">
           <tbody>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
+            <tr *ngIf="s.content.showSubtotal !== false" style="border-bottom: 1px solid #e2e8f0;">
               <td style="padding: 8px 16px; font-weight: bold;">{{ s.content.labels?.subtotal || 'Subtotal' }}</td>
               <td style="padding: 8px 16px;">{{ theme.currency?.symbol }} {{ subtotal | number:'1.2-2' }}</td>
             </tr>
@@ -1085,7 +1295,7 @@
               <td style="padding: 8px 16px; font-weight: bold;">{{ s.content.labels?.tax || 'Tax' }}</td>
               <td style="padding: 8px 16px;">{{ theme.currency?.symbol }} {{ taxAmount | number:'1.2-2' }}</td>
             </tr>
-            <tr style="border-bottom: 2px solid #000;">
+            <tr *ngIf="s.content.showGrandTotal !== false" style="border-bottom: 2px solid #000;">
               <td style="padding: 10px 16px; font-weight: 900; font-size: 14px;">{{ s.content.labels?.total || 'Grand
                 Total' }}</td>
               <td style="padding: 10px 16px; font-weight: 900; font-size: 14px;">{{ theme.currency?.symbol }} {{
@@ -1118,3 +1328,199 @@
 <!-- Save Template Modal -->
 <app-save-template-modal *ngIf="showSaveTemplateModal" [isAdmin]="currentUser?.role === 'ADMIN'"
   (save)="handleSaveTemplate($event)" (cancel)="showSaveTemplateModal = false"></app-save-template-modal>
+
+<!-- Column Settings Modal -->
+<div class="modal-overlay" *ngIf="showAddColumnForm" (click)="cancelAddEditColumn()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-title">
+        <svg class="header-icon" style="width: 20px; height: 20px; color: var(--accent-color); margin-right: 8px;">
+          <use [attr.href]="icons.details"></use>
+        </svg>
+        <h3>{{ editingColumnId ? 'Edit Column Settings' : 'New Custom Header' }}</h3>
+      </div>
+      <button class="btn-close" (click)="cancelAddEditColumn()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Header Name</label>
+        <input type="text" [(ngModel)]="newColumn.label" [disabled]="!!(editingColumnId && !newColumn.isCustom)"
+          placeholder="e.g. Tax Rate, Discount" class="premium-input"
+          [class.is-invalid]="showValidationErrors && (!newColumn.label || !newColumn.label.trim())"
+          style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-sidebar); color: var(--text-main); font-size: 14px; transition: all 0.2s;">
+      </div>
+
+      <div class="form-group">
+        <label>Value Type</label>
+        <div class="value-type-grid">
+          <button type="button" class="value-type-card" [class.active]="newColumn.type === 'text'"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)" (click)="newColumn.type = 'text'">
+            <span class="type-icon">Abc</span>
+            <span class="type-label">Plain Text</span>
+          </button>
+          <button type="button" class="value-type-card" [class.active]="newColumn.type === 'number'"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)" (click)="newColumn.type = 'number'">
+            <span class="type-icon">#.##</span>
+            <span class="type-label">Decimal</span>
+          </button>
+          <button type="button" class="value-type-card" [class.active]="newColumn.type === 'currency'"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)" (click)="newColumn.type = 'currency'">
+            <span class="type-icon">{{theme.currency?.symbol}}</span>
+            <span class="type-label">Currency</span>
+          </button>
+          <button type="button" class="value-type-card" [class.active]="newColumn.type === 'percentage'"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)" (click)="newColumn.type = 'percentage'">
+            <span class="type-icon">%</span>
+            <span class="type-label">Percentage</span>
+          </button>
+          <button type="button" class="value-type-card" [class.active]="newColumn.type === 'date'"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)" (click)="newColumn.type = 'date'">
+            <span class="type-icon">📅</span>
+            <span class="type-label">Date</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="newColumn.type === 'date'">
+        <label>Default Date</label>
+        <input type="date" [(ngModel)]="newColumn.defaultValue" [disabled]="!!(editingColumnId && !newColumn.isCustom)"
+          class="premium-input"
+          style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-sidebar); color: var(--text-main); font-size: 14px;">
+        <p style="font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 4px;">Leave empty for
+          current date.</p>
+      </div>
+
+      <!-- Calculation Panel -->
+      <div class="form-group calculation-toggle-panel"
+        style="margin-top: 15px; margin-bottom: 15px; padding: 12px 16px; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: all 0.2s;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div
+            style="width: 32px; height: 32px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--accent-color);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path
+                d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z" />
+              <path
+                d="M4 2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-2zm1 .5v1h6V3H5zm.5 4.5a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zM5.5 10a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zM5.5 12.5a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1zm3 0a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z" />
+            </svg>
+          </div>
+          <div>
+            <span
+              style="font-size: 11px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Formula
+              Calculation</span>
+            <span
+              style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; line-height: 1.2;">Compute
+              value automatically from other fields</span>
+          </div>
+        </div>
+        <label class="t-switch">
+          <input type="checkbox" [(ngModel)]="newColumn.isCalculated"
+            [disabled]="!!(editingColumnId && !newColumn.isCustom)">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Calculation Settings -->
+      <div *ngIf="newColumn.isCalculated" class="calculation-settings-box">
+        <div class="form-group">
+          <label>First Field</label>
+          <div class="premium-select-wrapper">
+            <select [(ngModel)]="newColumn.formula.fieldA" class="premium-select"
+              [class.is-invalid]="showValidationErrors && (!newColumn.formula.fieldA || newColumn.formula.fieldA === '' || newColumn.formula.fieldA === 'null' || newColumn.formula.fieldA === 'undefined')">
+              <option [value]="''">--Select--</option>
+              <ng-container *ngFor="let c of selectedSession?.content?.columns">
+                <option *ngIf="c.visible" [value]="c.id">{{ c.label || c.id }}</option>
+              </ng-container>
+            </select>
+            <div class="premium-select-arrow"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Operator</label>
+          <div class="premium-select-wrapper">
+            <select [(ngModel)]="newColumn.formula.operator" class="premium-select"
+              [class.is-invalid]="showValidationErrors && (!newColumn.formula.operator || newColumn.formula.operator === '' || newColumn.formula.operator === 'null' || newColumn.formula.operator === 'undefined')">
+              <option [value]="''">--Select--</option>
+              <option value="+">Add (+)</option>
+              <option value="-">Subtract (-)</option>
+              <option value="*">Multiply (*)</option>
+              <option value="/">Divide (/)</option>
+            </select>
+            <div class="premium-select-arrow"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Second Field</label>
+          <div class="premium-select-wrapper">
+            <select [(ngModel)]="newColumn.formula.fieldB" class="premium-select"
+              [class.is-invalid]="showValidationErrors && (!newColumn.formula.fieldB || newColumn.formula.fieldB === '' || newColumn.formula.fieldB === 'null' || newColumn.formula.fieldB === 'undefined')">
+              <option [value]="''">--Select--</option>
+              <ng-container *ngFor="let c of selectedSession?.content?.columns">
+                <option *ngIf="c.visible" [value]="c.id">{{ c.label || c.id }}</option>
+              </ng-container>
+            </select>
+            <div class="premium-select-arrow"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Colors Section -->
+      <div class="form-group" style="margin-top: 15px;">
+        <label>Custom Colors (Optional)</label>
+        <div class="s-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
+          <div class="s-field">
+            <span
+              style="font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">Header
+              Bg</span>
+            <div class="color-picker-wrapper"
+              style="padding: 6px 8px; border-radius: 8px; border: 1px dashed var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 32px; background: var(--bg-dark); transition: none; overflow: visible; box-shadow: none; position: relative;">
+              <div class="color-swatch" [style.background]="newColumn.headerBgColor || '#f1f5f9'"
+                style="width: 16px; height: 16px; border-radius: 4px; position: relative;">
+                <input type="color" [ngModel]="newColumn.headerBgColor || '#f1f5f9'"
+                  (ngModelChange)="newColumn.headerBgColor = $event"
+                  style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+              </div>
+            </div>
+          </div>
+          <div class="s-field">
+            <span
+              style="font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">Header
+              Text</span>
+            <div class="color-picker-wrapper"
+              style="padding: 6px 8px; border-radius: 8px; border: 1px dashed var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 32px; background: var(--bg-dark); transition: none; overflow: visible; box-shadow: none; position: relative;">
+              <div class="color-swatch" [style.background]="newColumn.headerTextColor || '#1f2937'"
+                style="width: 16px; height: 16px; border-radius: 4px; position: relative;">
+                <input type="color" [ngModel]="newColumn.headerTextColor || '#1f2937'"
+                  (ngModelChange)="newColumn.headerTextColor = $event"
+                  style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+              </div>
+            </div>
+          </div>
+          <div class="s-field">
+            <span
+              style="font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">Value
+              Text</span>
+            <div class="color-picker-wrapper"
+              style="padding: 6px 8px; border-radius: 8px; border: 1px dashed var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 32px; background: var(--bg-dark); transition: none; overflow: visible; box-shadow: none; position: relative;">
+              <div class="color-swatch" [style.background]="newColumn.textColor || '#374151'"
+                style="width: 16px; height: 16px; border-radius: 4px; position: relative;">
+                <input type="color" [ngModel]="newColumn.textColor || '#374151'"
+                  (ngModelChange)="newColumn.textColor = $event"
+                  style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-outline-sm" (click)="cancelAddEditColumn()">Cancel</button>
+      <button class="btn-primary" (click)="confirmAddCustomColumn()">
+        {{ editingColumnId ? 'Save Changes' : 'Add Column' }}
+      </button>
+    </div>
+  </div>
+</div>

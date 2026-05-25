@@ -209,6 +209,15 @@ body {
       .nav-icon {
         color: var(--accent-color);
       }
+
+      &:hover {
+        background: var(--nav-active-bg);
+        color: var(--accent-color);
+
+        .nav-icon {
+          color: var(--accent-color);
+        }
+      }
     }
 
     .nav-icon {

@@ -85,10 +85,9 @@
 
       </div>
       <div class="design-info">
-        <span class="design-name">{{ draft.customerName }}</span>
+        <span class="design-name">{{ (draft.invoiceName && draft.invoiceName !== 'Untitled Invoice') ? draft.invoiceName : (draft.customerName && draft.customerName !== 'Unknown' ? draft.customerName : 'Untitled Invoice') }}</span>
         <span class="design-meta">
-          {{ draft.invoiceNo }} • {{ draft.dateCreated | date:'shortDate' }} • 
-          <strong>Rs. {{ draft.totalAmount | number:'1.2-2' }}</strong>
+          {{ draft.invoiceNo }} • {{ getFriendlyDate(draft.dateCreated, draft.lastEdited) }}
         </span>
       </div>
     </div>

@@ -12,6 +12,7 @@ import { ImageCropperModalComponent } from '../shared/image-cropper/image-croppe
 import { Subscription } from 'rxjs';
 
 import { InvoiceThumbnailComponent } from '../shared/invoice-thumbnail/invoice-thumbnail.component';
+import { getFriendlyDate } from '../../utils/date.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +23,7 @@ import { InvoiceThumbnailComponent } from '../shared/invoice-thumbnail/invoice-t
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   icons = Icons;
+  getFriendlyDate = getFriendlyDate;
   invoices: InvoiceRecord[] = [];
   viewMode: 'grid' | 'list' = 'grid'; // Grid is now default
   activeTab: 'documents' | 'profile' = 'documents'; 

@@ -111,11 +111,13 @@
         </div>
         <div class="card-footer-info">
           <div class="footer-row-top">
-            <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
+            <h3 class="customer-name truncate" [title]="(inv.invoiceName && inv.invoiceName !== 'Untitled Invoice') ? inv.invoiceName : (inv.customerName && inv.customerName !== 'Unknown' ? inv.customerName : 'Untitled Invoice')">
+              {{ (inv.invoiceName && inv.invoiceName !== 'Untitled Invoice') ? inv.invoiceName : (inv.customerName && inv.customerName !== 'Unknown' ? inv.customerName : 'Untitled Invoice') }}
+            </h3>
           </div>
-          <div class="footer-row-bottom">
-            <span class="date">{{ inv.dateCreated }}</span>
-            <span class="total">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
+          <div class="footer-row-bottom" style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.85;">
+            <span class="invoice-no" style="font-weight: 600;">#{{ inv.invoiceNo }}</span>
+            <span class="date">{{ getFriendlyDate(inv.dateCreated, inv.lastEdited) }}</span>
           </div>
         </div>
       </div>
@@ -149,12 +151,13 @@
         </div>
         <div class="card-footer-info">
           <div class="footer-row-top">
-            <h3 class="customer-name truncate">{{ inv.customerName }}</h3>
+            <h3 class="customer-name truncate" [title]="(inv.invoiceName && inv.invoiceName !== 'Untitled Invoice') ? inv.invoiceName : (inv.customerName && inv.customerName !== 'Unknown' ? inv.customerName : 'Untitled Invoice')">
+              {{ (inv.invoiceName && inv.invoiceName !== 'Untitled Invoice') ? inv.invoiceName : (inv.customerName && inv.customerName !== 'Unknown' ? inv.customerName : 'Untitled Invoice') }}
+            </h3>
           </div>
-          <div class="footer-row-bottom">
-             <span class="date">Edited: {{ inv.dateCreated | date:'MMM d' }}</span>
-             <span class="total-brief" style="font-weight: 800; font-size: 13px; color: #ffffff;">Rs. {{ inv.totalAmount | number:'1.2-2' }}</span>
-             <button class="btn-edit-card primary">Resume</button>
+          <div class="footer-row-bottom" style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.85;">
+            <span class="invoice-no" style="font-weight: 600;">#{{ inv.invoiceNo }}</span>
+            <span class="date">{{ getFriendlyDate(inv.dateCreated, inv.lastEdited) }}</span>
           </div>
         </div>
       </div>

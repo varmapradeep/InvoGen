@@ -23,6 +23,11 @@ export interface InvoiceSession {
   borderRadius?: number; // Rounded corners (px)
   opacity?: number; // 0.0 to 1.0
   sessions?: InvoiceSession[]; // Sub-sessions for rows and columns
+  headerBgColor?: string; // Custom table header background
+  headerTextColor?: string; // Custom table header font color
+  valueTextColor?: string; // Custom table cells text color
+  showBorders?: boolean; // Custom table grid borders toggle
+  stripedRows?: boolean; // Custom table striped rows toggle
 }
 
 export interface InvoiceTheme {
@@ -56,9 +61,11 @@ export interface InvoiceRecord {
   invoiceNo: string;
   dateCreated: string;
   customerName: string;
+  invoiceName?: string;
   totalAmount: number;
   userId: string;
   isDraft?: boolean; // NEW: Distinguish drafts from finalized records
+  lastEdited?: string; // Relative or absolute last edited timestamp
   fullData?: {
     sessions: InvoiceSession[];
     theme: InvoiceTheme;
