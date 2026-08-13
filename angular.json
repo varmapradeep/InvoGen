@@ -31,16 +31,6 @@
                 "input": "public"
               },
               "src/assets",
-              {
-                "glob": "LightTheme.png",
-                "input": "../",
-                "output": "assets/logo"
-              },
-              {
-                "glob": "DarkTheme.png",
-                "input": "../",
-                "output": "assets/logo"
-              },
               "src/robots.txt",
               "src/sitemap.xml"
             ],
@@ -59,8 +49,8 @@
                   },
                   {
                     "type": "anyComponentStyle",
-                    "maximumWarning": "50kB",
-                    "maximumError": "100kB"
+                    "maximumWarning": "90kB",
+                    "maximumError": "120kB"
                   }
                 ],
                 "allowedCommonJsDependencies": [

@@ -88,7 +88,8 @@ export class AuthService {
             return;
           }
         } else {
-          // First time this feature is active: set timestamp to now to give them 6 days
+          // First time this feature is active: set timestamp to now so a fresh
+          // session gets the full 24-hour window before expiring.
           localStorage.setItem(STORAGE_KEY_LAST_LOGIN, now.toString());
         }
         // -----------------------------
@@ -155,6 +156,19 @@ export class AuthService {
       localStorage.setItem(STORAGE_KEY_LAST_LOGIN, Date.now().toString());
       return true;
     } catch (e: any) {
+      // Popups are frequently blocked (mobile / in-app browsers). Fall back to a
+      // full-page redirect so Google login still works everywhere.
+      if (e && (e.code === 'auth/popup-blocked'
+        || e.code === 'auth/popup-closed-by-user'
+        || e.code === 'auth/cancelled-popup-request')) {
+        localStorage.setItem(STORAGE_KEY_REDIRECT_PENDING, '1');
+        try {
+          await signInWithRedirect(this.auth, provider);
+          return true; // Resolves after the redirect round-trip
+        } catch (err) {
+          console.error('Google Redirect Sign-In failed', err);
+        }
+      }
       console.error('Google Login failed', e);
       return false;
     }

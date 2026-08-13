@@ -27,7 +27,7 @@
     </div>
 
     <!-- Template Cards -->
-    <div class="design-card animated-up" *ngFor="let template of templates" (click)="editTemplate(template)">
+    <div class="design-card animated-up" *ngFor="let template of templates; trackBy: trackByTemplateId" (click)="editTemplate(template)">
       <div class="design-preview" [style.border-top-color]="template.fullData.theme.primaryColor">
         <!-- Realistic Live Preview -->
         <div class="thumbnail-container">
@@ -63,7 +63,7 @@
   </div>
 
   <div class="designs-grid-container" *ngIf="activeSection === 'drafts'">
-    <div class="design-card animated-up" *ngFor="let draft of drafts" (click)="openDraft(draft)">
+    <div class="design-card animated-up" *ngFor="let draft of drafts; trackBy: trackByDraftId" (click)="openDraft(draft)">
       <div class="design-preview" [style.border-top-color]="draft.fullData?.theme?.primaryColor || '#7645c0'">
         <!-- Realistic Live Preview -->
         <div class="thumbnail-container">
@@ -110,7 +110,7 @@
 <!-- Custom Confirmation Modal -->
 <app-confirm-modal 
   *ngIf="showConfirmModal"
-  [title]="confirmTitle"
+  [modalTitle]="confirmTitle"
   [message]="confirmMessage"
   (confirmed)="onConfirmDelete()"
   (canceled)="closeConfirm()">

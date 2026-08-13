@@ -40,8 +40,15 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
     pageBgImage: ''
   };
   
+  // Calendar State
+  showCalendarFor: 'invoiceDate' | 'invoiceDueDate' | null = null;
+  calendarCurrentDate: Date = new Date();
+  calendarWeeks: any[][] = [];
+  showMappingDropdown: boolean = false;
+
   invoiceNo: string = '';
   invoiceDate: string = '';
+  invoiceDueDate: string = '';
   customerName: string = '';
   invoiceName: string = 'Untitled Invoice';
   editId: string | null = null;
@@ -217,6 +224,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
   initNewInvoice() {
     this.invoiceNo = this.generateInvoiceNumber();
     this.invoiceDate = new Date().toISOString().split('T')[0];
+    this.invoiceDueDate = '';
     this.invoiceName = 'Untitled Invoice';
     this.hasSavedCurrency = false;
     this.theme = { 
@@ -248,6 +256,7 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       }
       this.invoiceNo = data.invoiceNo;
       this.invoiceDate = data.dateCreated;
+      this.invoiceDueDate = data.dueDate || data.fullData?.invoiceDueDate || '';
       this.customerName = data.customerName;
       this.invoiceName = data.invoiceName || 'Untitled Invoice';
       this.initExpandedRows();
@@ -1302,13 +1311,18 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
       const record: InvoiceRecord = {
         invoiceNo: finalInvoiceNo,
         dateCreated: this.invoiceDate,
+        dueDate: this.invoiceDueDate || '',
         customerName: billedTo?.content.name || 'Unknown',
         invoiceName: this.invoiceName,
         totalAmount: this.grandTotal,
         userId: this.currentUser.id,
         isDraft: true, // SAVE AS DRAFT
         lastEdited: new Date().toISOString(),
-        fullData: { sessions: this.sessions, theme: this.theme }
+        fullData: {
+          sessions: this.sessions,
+          theme: this.theme,
+          invoiceDueDate: this.invoiceDueDate || ''
+        }
       };
 
       if (this.editId) {
@@ -1507,5 +1521,325 @@ export class InvoiceEditorComponent implements OnInit, OnDestroy, AfterViewInit 
         html2pdf().set(opt).from(element).save();
       }
     } catch (e) { this.toast.error('PDF generation failed. Try again.'); }
+  }
+
+  // --- Calendar Methods ---
+  generateCalendarGrid(field: 'invoiceDate' | 'invoiceDueDate') {
+    const currentDateVal = field === 'invoiceDate' ? this.invoiceDate : this.invoiceDueDate;
+    if (currentDateVal) {
+      const d = new Date(currentDateVal);
+      if (!isNaN(d.getTime())) {
+        this.calendarCurrentDate = new Date(d.getFullYear(), d.getMonth(), 1);
+      } else {
+        this.calendarCurrentDate = new Date();
+      }
+    } else {
+      this.calendarCurrentDate = new Date();
+    }
+    this.buildCalendarWeeks(field);
+  }
+
+  buildCalendarWeeks(field: 'invoiceDate' | 'invoiceDueDate') {
+    const year = this.calendarCurrentDate.getFullYear();
+    const month = this.calendarCurrentDate.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    const cells = [];
+    // Previous month filler days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      cells.push({
+        dayNum: prevMonthTotalDays - i,
+        isCurrentMonth: false,
+        date: new Date(year, month - 1, prevMonthTotalDays - i)
+      });
+    }
+
+    // Current month days
+    const activeDateVal = field === 'invoiceDate' ? this.invoiceDate : this.invoiceDueDate;
+    const activeDate = activeDateVal ? new Date(activeDateVal) : null;
+
+    for (let i = 1; i <= totalDays; i++) {
+      const cellDate = new Date(year, month, i);
+      const isSelected = activeDate ? (
+        activeDate.getFullYear() === year &&
+        activeDate.getMonth() === month &&
+        activeDate.getDate() === i
+      ) : false;
+
+      cells.push({
+        dayNum: i,
+        isCurrentMonth: true,
+        isSelected,
+        date: cellDate
+      });
+    }
+
+    // Next month filler days to complete grid (multiples of 7)
+    const totalCells = cells.length;
+    const remaining = 42 - totalCells; // 6 rows standard calendar grid
+    for (let i = 1; i <= remaining; i++) {
+      cells.push({
+        dayNum: i,
+        isCurrentMonth: false,
+        date: new Date(year, month + 1, i)
+      });
+    }
+
+    // Chunk into weeks of 7 days
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeks.push(cells.slice(i, i + 7));
+    }
+    this.calendarWeeks = weeks;
+  }
+
+  prevCalendarMonth(field: 'invoiceDate' | 'invoiceDueDate') {
+    const y = this.calendarCurrentDate.getFullYear();
+    const m = this.calendarCurrentDate.getMonth();
+    this.calendarCurrentDate = new Date(y, m - 1, 1);
+    this.buildCalendarWeeks(field);
+  }
+
+  nextCalendarMonth(field: 'invoiceDate' | 'invoiceDueDate') {
+    const y = this.calendarCurrentDate.getFullYear();
+    const m = this.calendarCurrentDate.getMonth();
+    this.calendarCurrentDate = new Date(y, m + 1, 1);
+    this.buildCalendarWeeks(field);
+  }
+
+  selectCalendarDate(cell: any, field: 'invoiceDate' | 'invoiceDueDate') {
+    if (cell.date) {
+      const yyyy = cell.date.getFullYear();
+      const mm = String(cell.date.getMonth() + 1).padStart(2, '0');
+      const dd = String(cell.date.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      if (field === 'invoiceDate') {
+        this.invoiceDate = dateStr;
+      } else {
+        this.invoiceDueDate = dateStr;
+      }
+      this.isSaved = false;
+      this.showCalendarFor = null;
+      this.paginate();
+    }
+  }
+
+  getCalendarMonthName(): string {
+    return this.calendarCurrentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  toggleCalendar(field: 'invoiceDate' | 'invoiceDueDate', event: Event) {
+    event.stopPropagation();
+    if (this.showCalendarFor === field) {
+      this.showCalendarFor = null;
+    } else {
+      this.showCalendarFor = field;
+      this.generateCalendarGrid(field);
+    }
+  }
+
+  // --- Smart Mapping Dropdown Helpers ---
+  getMappingLabel(val: any): string {
+    const field = (val && typeof val === 'object') ? val.field : val;
+    if (!field) return 'Select Field Mapping';
+    const mappingLabels: { [key: string]: string } = {
+      invoiceNo: 'Invoice Number',
+      date: 'Invoice Date',
+      dueDate: 'Due Date',
+      subtotal: 'Subtotal',
+      taxAmount: 'Tax Amount',
+      discountAmount: 'Discount Amount',
+      shipping: 'Shipping Charge',
+      total: 'Grand Total',
+      clientName: 'Client Name',
+      clientAddress: 'Client Address',
+      companyName: 'Company Name',
+      companyAddress: 'Company Address',
+      companyEmail: 'Company Email',
+      companyPhone: 'Company Phone'
+    };
+    return mappingLabels[field] || field;
+  }
+
+  getCurrentMapping(): string {
+    const session = this.selectedSession;
+    if (!session || !session.content) return '';
+    return typeof session.content === 'string' ? session.content : session.content.field || '';
+  }
+
+  toggleMappingDropdown(event: Event): void {
+    event.stopPropagation();
+    this.showMappingDropdown = !this.showMappingDropdown;
+  }
+
+  onSmartFieldChange(field: string): void {
+    const session = this.selectedSession;
+    if (!session) return;
+    this.snapshot();
+    if (this.isString(session.content)) {
+      session.content = {
+        field: field,
+        label: this.getMappingLabel(field) + ':',
+        showLabel: true,
+        layout: 'inline',
+        format: 'default'
+      };
+    } else {
+      session.content.field = field;
+      session.content.label = this.getMappingLabel(field) + ':';
+    }
+    this.isSaved = false;
+    this.paginate();
+  }
+
+  selectMapping(val: string): void {
+    this.onSmartFieldChange(val);
+    this.showMappingDropdown = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.premium-calendar-picker') && !target.closest('.calendar-trigger')) {
+      this.showCalendarFor = null;
+    }
+    if (!target.closest('.premium-select-dropdown') && !target.closest('.premium-select-trigger')) {
+      this.showMappingDropdown = false;
+    }
+  }
+
+  limitOffset(session: any) {
+    if (!session || !session.id) return;
+    const container = document.getElementById('session-' + session.id);
+    const inner = container?.querySelector('.component-content-inner') as HTMLElement;
+    
+    if (container && inner) {
+      const currentTransform = inner.style.transform;
+      inner.style.transform = 'none';
+      
+      const containerWidth = container.getBoundingClientRect().width;
+      const innerWidth = this.getContentWidth(inner, containerWidth);
+      
+      inner.style.transform = currentTransform;
+      
+      const paddingLeft = parseFloat(window.getComputedStyle(container).paddingLeft || '0');
+      const paddingRight = parseFloat(window.getComputedStyle(container).paddingRight || '0');
+      
+      const availableWidth = containerWidth - paddingLeft - paddingRight;
+      
+      let maxLeftShift = -150;
+      let maxRightShift = 150;
+      
+      if (session.alignment === 'left') {
+        maxLeftShift = 0;
+        maxRightShift = Math.max(0, availableWidth - innerWidth);
+      } else if (session.alignment === 'right') {
+        maxLeftShift = -Math.max(0, availableWidth - innerWidth);
+        maxRightShift = 0;
+      } else { // center
+        const halfEmpty = Math.max(0, (availableWidth - innerWidth) / 2);
+        maxLeftShift = -halfEmpty;
+        maxRightShift = halfEmpty;
+      }
+      
+      if (session.offsetX < maxLeftShift) {
+        session.offsetX = Math.round(maxLeftShift);
+      } else if (session.offsetX > maxRightShift) {
+        session.offsetX = Math.round(maxRightShift);
+      }
+    }
+    this.paginate();
+  }
+
+  limitColumnOffset(col: any) {
+    if (!col || !col.id) return;
+    const container = document.getElementById('col-' + col.id);
+    const inner = container?.querySelector('.grid-column-content-inner') as HTMLElement;
+    
+    if (container && inner) {
+      const currentTransform = inner.style.transform;
+      inner.style.transform = 'none';
+      
+      const containerWidth = container.getBoundingClientRect().width;
+      const innerWidth = this.getContentWidth(inner, containerWidth);
+      
+      inner.style.transform = currentTransform;
+      
+      const paddingLeft = parseFloat(window.getComputedStyle(container).paddingLeft || '0');
+      const paddingRight = parseFloat(window.getComputedStyle(container).paddingRight || '0');
+      
+      const availableWidth = containerWidth - paddingLeft - paddingRight;
+      
+      let maxLeftShift = -150;
+      let maxRightShift = 150;
+      
+      if (col.alignment === 'left') {
+        maxLeftShift = 0;
+        maxRightShift = Math.max(0, availableWidth - innerWidth);
+      } else if (col.alignment === 'right') {
+        maxLeftShift = -Math.max(0, availableWidth - innerWidth);
+        maxRightShift = 0;
+      } else { // center
+        const halfEmpty = Math.max(0, (availableWidth - innerWidth) / 2);
+        maxLeftShift = -halfEmpty;
+        maxRightShift = halfEmpty;
+      }
+      
+      if (col.offsetX < maxLeftShift) {
+        col.offsetX = Math.round(maxLeftShift);
+      } else if (col.offsetX > maxRightShift) {
+        col.offsetX = Math.round(maxRightShift);
+      }
+    }
+    this.paginate();
+  }
+
+  getContentWidth(inner: HTMLElement, containerWidth: number): number {
+    let maxWidth = 0;
+    const children = Array.from(inner.children);
+    if (children.length === 0) return containerWidth;
+
+    for (const child of children) {
+      const el = child as HTMLElement;
+      if (el.classList.contains('column-placeholder') || el.classList.contains('column-add-btn')) {
+        continue;
+      }
+      
+      const originalDisplay = el.style.display;
+      const originalWidth = el.style.width;
+      
+      el.style.display = 'inline-block';
+      el.style.width = 'auto';
+      
+      let childWidth = el.getBoundingClientRect().width;
+      const subInner = el.querySelector('.component-content-inner') as HTMLElement;
+      if (subInner) {
+        const origTrans = subInner.style.transform;
+        subInner.style.transform = 'none';
+        const subChild = subInner.firstElementChild as HTMLElement;
+        if (subChild) {
+          const origSubDisp = subChild.style.display;
+          const origSubW = subChild.style.width;
+          subChild.style.display = 'inline-block';
+          subChild.style.width = 'auto';
+          
+          childWidth = subChild.getBoundingClientRect().width;
+          
+          subChild.style.display = origSubDisp;
+          subChild.style.width = origSubW;
+        }
+        subInner.style.transform = origTrans;
+      }
+
+      el.style.display = originalDisplay;
+      el.style.width = originalWidth;
+      
+      if (childWidth > maxWidth) {
+        maxWidth = childWidth;
+      }
+    }
+    return maxWidth > 0 ? maxWidth : containerWidth;
   }
 }

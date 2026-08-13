@@ -45,7 +45,7 @@
     </div>
 
     <!-- Invoice Card -->
-    <div class="invoice-card animated-up" *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+    <div class="invoice-card animated-up" *ngFor="let inv of pagedInvoices; trackBy: trackByInvoiceId" (click)="openInvoice(inv.id)">
       <div class="preview-skeleton">
         <div class="s-badge">{{ inv.invoiceNo }}</div>
         <div class="s-lines">
@@ -94,7 +94,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let inv of pagedInvoices" (click)="openInvoice(inv.id)">
+            <tr *ngFor="let inv of pagedInvoices; trackBy: trackByInvoiceId" (click)="openInvoice(inv.id)">
               <td><span class="inv-badge">{{ inv.invoiceNo }}</span></td>
               <td><strong>{{ inv.customerName }}</strong></td>
               <td>{{ inv.dateCreated }}</td>
@@ -135,7 +135,7 @@
   <!-- Delete Confirmation Modal -->
   <app-confirm-modal
     *ngIf="showConfirmModal"
-    title="Delete Invoice"
+    [modalTitle]="'Delete Invoice'"
     message="Are you sure you want to permanently delete this invoice? This action cannot be undone."
     (confirmed)="onConfirmDelete()"
     (canceled)="onCancelDelete()">

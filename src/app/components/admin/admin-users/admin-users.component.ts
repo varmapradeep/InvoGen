@@ -89,6 +89,10 @@ export class AdminUserManagementComponent implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
+  trackByUserId(_index: number, user: User): string {
+    return user.id;
+  }
+
   setSort(field: keyof User) {
     if (this.sortField === field) {
       this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';

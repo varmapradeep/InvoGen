@@ -110,4 +110,12 @@ export class AdminDesignCenterComponent implements OnInit {
     this.showConfirmModal = false;
     this.pendingDeleteAction = null;
   }
+
+  trackByTemplateId(_index: number, template: InvoiceTemplate): string {
+    return template.id || `${template.name}_${_index}`;
+  }
+
+  trackByDraftId(_index: number, draft: InvoiceRecord): string {
+    return draft.id || `${draft.invoiceNo}_${_index}`;
+  }
 }

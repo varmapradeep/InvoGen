@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
       <div class="confirm-card animated-slide-up" (click)="$event.stopPropagation()">
         <div class="confirm-header">
            <div class="warn-icon">!</div>
-           <h3>{{ title }}</h3>
+           <h3>{{ modalTitle }}</h3>
         </div>
         <div class="confirm-body">
           <p>{{ message }}</p>
@@ -129,7 +129,7 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class ConfirmModalComponent {
-  @Input() title: string = 'Confirm Action';
+  @Input() modalTitle: string = 'Confirm Action';
   @Input() message: string = 'Are you sure you want to proceed?';
   
   @Output() confirmed = new EventEmitter<void>();

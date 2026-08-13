@@ -43,7 +43,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of pagedUsers">
+          <tr *ngFor="let user of pagedUsers; trackBy: trackByUserId">
             <td>
               <div class="user-info-cell">
                 <div class="user-avatar">{{ user.name.charAt(0).toUpperCase() }}</div>
@@ -108,7 +108,7 @@
 <!-- Delete Confirm Modal -->
 <app-confirm-modal
   *ngIf="showConfirmModal"
-  [title]="confirmTitle"
+  [modalTitle]="confirmTitle"
   [message]="confirmMessage"
   (confirmed)="onConfirmAction()"
   (canceled)="closeConfirm()">
@@ -119,7 +119,7 @@
   <div class="modal-card" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Review Account Access</h3>
-      <button class="close-modal" (click)="closeEdit()">×</button>
+      <button class="close-modal" title="Close" (click)="closeEdit()">×</button>
     </div>
 
     <div class="modal-body">

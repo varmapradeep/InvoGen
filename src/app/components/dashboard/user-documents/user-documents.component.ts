@@ -165,4 +165,8 @@ export class UserDocumentsComponent implements OnInit, OnDestroy {
     if (!id) return;
     this.router.navigate(['/viewer', id]);
   }
+
+  trackByInvoiceId(_index: number, inv: InvoiceRecord): string {
+    return inv.id || `${inv.invoiceNo}_${inv.customerName}`;
+  }
 }

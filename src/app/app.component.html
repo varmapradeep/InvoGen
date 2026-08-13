@@ -38,13 +38,13 @@
           </svg>
           <span class="nav-label">Overview</span>
         </a>
-        <a routerLink="/admin/users" routerLinkActive="active" class="nav-item" title="Users">
+        <a routerLink="/admin/users" routerLinkActive="active" class="nav-item" title="Security & Users">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.users"></use>
           </svg>
           <span class="nav-label">Security & Users</span>
         </a>
-        <a routerLink="/admin/designs" routerLinkActive="active" class="nav-item" title="Designs">
+        <a routerLink="/admin/designs" routerLinkActive="active" class="nav-item" title="Design Center">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.edit"></use>
           </svg>
@@ -55,14 +55,14 @@
       <!-- USER / COMMON SECTION -->
       <div class="nav-section">
         <span class="nav-section-title">Workspace</span>
-        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Dashboard">
+        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Overview">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.dashboard"></use>
           </svg>
           <span class="nav-label">Overview</span>
         </a>
 
-        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/documents" routerLinkActive="active" class="nav-item" title="Documents">
+        <a *ngIf="currentUser?.role !== 'ADMIN'" routerLink="/documents" routerLinkActive="active" class="nav-item" title="My Documents">
           <svg class="nav-icon" style="width: 16px; height: 16px;">
             <use [attr.href]="icons.file"></use>
           </svg>

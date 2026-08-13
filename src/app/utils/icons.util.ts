@@ -52,4 +52,5 @@ export const Icons = {
   globe:     `#icon-globe`,
   currency:  `#icon-globe`,
   lock:      `#icon-lock`,
+  calendar:  `#icon-calendar`,
 };

@@ -106,7 +106,7 @@
               </button>
 
               <span class="t-badge row-badge">{{ row.sessions?.length || 0 }} col</span>
-              <button class="t-del" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
+              <button class="t-del" title="Delete Row" (click)="removeSession(row.id); $event.stopPropagation()">×</button>
             </div>
           </div>
 
@@ -144,7 +144,7 @@
 
                 <span class="t-badge col-badge">{{ col.width | number:'1.0-0' }}%</span>
                 <span class="t-badge el-count" *ngIf="col.sessions?.length">{{ col.sessions!.length }} el</span>
-                <button class="t-del" (click)="removeSession(col.id); $event.stopPropagation()">×</button>
+                <button class="t-del" title="Delete Column" (click)="removeSession(col.id); $event.stopPropagation()">×</button>
               </div>
 
               <!-- Elements — connected to ALL column drop lists for cross-column/row DnD -->
@@ -178,7 +178,7 @@
                       ✎
                     </button>
 
-                    <button class="t-del" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
+                    <button class="t-del" title="Delete Element" (click)="removeSession(el.id); $event.stopPropagation()">×</button>
                   </div>
                   <div *cdkDragPlaceholder class="layer-placeholder"></div>
                 </div>
@@ -518,7 +518,7 @@
                       <use [attr.href]="icons.edit"></use>
                     </svg>
                   </button>
-                  <button class="btn-delete-row" (click)="removeColumn(col.id)"
+                  <button class="btn-delete-row" title="Delete Column" (click)="removeColumn(col.id)"
                     style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
                 </div>
               </div>
@@ -671,7 +671,7 @@
                   <option value="subtract">-</option>
                 </select>
                 <input type="number" [(ngModel)]="row.amount" (change)="paginate()">
-                <button (click)="selectedSession.content.summary.customRows.splice(ri, 1); paginate()">×</button>
+                <button title="Delete Row" (click)="selectedSession.content.summary.customRows.splice(ri, 1); paginate()">×</button>
               </div>
             </div>
 
@@ -764,7 +764,7 @@
                   <option value="subtract">Subtract (-)</option>
                 </select>
                 <input type="number" style="flex: 1; min-width: 80px;" [(ngModel)]="row.amount" placeholder="Amount">
-                <button (click)="selectedSession.content.customRows.splice(i, 1); paginate()"
+                <button title="Delete Row" (click)="selectedSession.content.customRows.splice(i, 1); paginate()"
                   style="background:none; border:none; color:#ef4444; font-size:16px; cursor:pointer; padding:0 4px;">×</button>
               </div>
             </div>
@@ -835,14 +835,24 @@
             <button [class.active]="selectedSession.vAlignment === 'bottom'"
               (click)="selectedSession.vAlignment = 'bottom'" title="Align Bottom">Bottom</button>
           </div>
-          <label class="spacing-top">Content Horizontal Align</label>
-          <div class="toggle-group">
+          <label class="spacing-top">Content Horizontal Align & Position</label>
+          <div class="toggle-group" style="margin-bottom: 12px;">
             <button [class.active]="selectedSession.alignment === 'left'"
-              (click)="selectedSession.alignment = 'left'">Left</button>
+              (click)="selectedSession.alignment = 'left'; selectedSession.offsetX = 0; paginate()">Left</button>
             <button [class.active]="selectedSession.alignment === 'center'"
-              (click)="selectedSession.alignment = 'center'">Center</button>
+              (click)="selectedSession.alignment = 'center'; selectedSession.offsetX = 0; paginate()">Center</button>
             <button [class.active]="selectedSession.alignment === 'right'"
-              (click)="selectedSession.alignment = 'right'">Right</button>
+              (click)="selectedSession.alignment = 'right'; selectedSession.offsetX = 0; paginate()">Right</button>
+          </div>
+          <div class="s-field">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Shift Left / Right (px)</span>
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent-color);">{{ selectedSession.offsetX || 0 }}px</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="range" [(ngModel)]="selectedSession.offsetX" [min]="selectedSession.alignment === 'left' ? 0 : -150" [max]="selectedSession.alignment === 'right' ? 0 : 150" step="1" (input)="limitColumnOffset(selectedSession)" (change)="limitColumnOffset(selectedSession)" style="flex: 1; accent-color: var(--accent-color);">
+              <button class="btn-clear-label" style="position: static; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;" (click)="selectedSession.offsetX = 0; paginate()">Reset</button>
+            </div>
           </div>
         </div>
 
@@ -977,14 +987,24 @@
 
         <!-- Universal Component Alignment -->
         <div class="ins-section" *ngIf="!['layout-row', 'layout-column'].includes(selectedSession.type)">
-          <label>Content Horizontal Align</label>
-          <div class="toggle-group">
+          <label>Content Horizontal Align & Position</label>
+          <div class="toggle-group" style="margin-bottom: 12px;">
             <button [class.active]="selectedSession.alignment === 'left'"
-              (click)="selectedSession.alignment = 'left'">Left</button>
+              (click)="selectedSession.alignment = 'left'; selectedSession.offsetX = 0; paginate()">Left</button>
             <button [class.active]="selectedSession.alignment === 'center'"
-              (click)="selectedSession.alignment = 'center'">Center</button>
+              (click)="selectedSession.alignment = 'center'; selectedSession.offsetX = 0; paginate()">Center</button>
             <button [class.active]="selectedSession.alignment === 'right'"
-              (click)="selectedSession.alignment = 'right'">Right</button>
+              (click)="selectedSession.alignment = 'right'; selectedSession.offsetX = 0; paginate()">Right</button>
+          </div>
+          <div class="s-field">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Shift Left / Right (px)</span>
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent-color);">{{ selectedSession.offsetX || 0 }}px</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="range" [(ngModel)]="selectedSession.offsetX" [min]="selectedSession.alignment === 'left' ? 0 : -150" [max]="selectedSession.alignment === 'right' ? 0 : 150" step="1" (input)="limitOffset(selectedSession)" (change)="limitOffset(selectedSession)" style="flex: 1; accent-color: var(--accent-color);">
+              <button class="btn-clear-label" style="position: static; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;" (click)="selectedSession.offsetX = 0; paginate()">Reset</button>
+            </div>
           </div>
         </div>
 
@@ -1070,20 +1090,22 @@
     (click)="selectSession(s.id); $event.stopPropagation()">
 
     <div class="grid-columns-wrapper">
-      <div class="grid-column" *ngFor="let col of s.sessions" [style.width.%]="col.width"
+      <div class="grid-column" *ngFor="let col of s.sessions" [attr.id]="'col-' + col.id" [style.width.%]="col.width"
         [style.background-color]="col.bgColor"
         [style.justify-content]="col.vAlignment === 'center' ? 'center' : (col.vAlignment === 'bottom' ? 'flex-end' : 'flex-start')"
         [style.align-items]="col.alignment === 'center' ? 'center' : (col.alignment === 'right' ? 'flex-end' : 'flex-start')"
         [class.selected]="selectedColumnId === col.id" (click)="selectColumn(col.id); $event.stopPropagation()">
 
-        <ng-container *ngFor="let sub of col.sessions">
-          <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: sub }"></ng-container>
-        </ng-container>
+        <div class="grid-column-content-inner" [style.transform]="col.offsetX ? 'translateX(' + col.offsetX + 'px)' : ''" style="display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: inherit; align-items: inherit;">
+          <ng-container *ngFor="let sub of col.sessions">
+            <ng-container *ngTemplateOutlet="sessionRenderer; context: { $implicit: sub }"></ng-container>
+          </ng-container>
 
-        <div class="column-add-btn" *ngIf="col.sessions.length === 0" (click)="selectColumnAndAdd(col, $event)"
-          title="Click to add content here">
-          <span>+</span>
-          <small>Add Content</small>
+          <div class="column-add-btn" *ngIf="col.sessions.length === 0" (click)="selectColumnAndAdd(col, $event)"
+            title="Click to add content here">
+            <span>+</span>
+            <small>Add Content</small>
+          </div>
         </div>
       </div>
     </div>
@@ -1091,11 +1113,14 @@
 
   <!-- Component Wrapper -->
   <div class="component-wrapper" *ngIf="s.type !== 'layout-row' && s.type !== 'layout-column'"
+    [attr.id]="'session-' + s.id"
     [class.selected]="selectedSessionId === s.id" [style.text-align]="s.alignment"
     [style.align-self]="s.alignment === 'center' ? 'center' : (s.alignment === 'right' ? 'flex-end' : 'flex-start')"
     [style.color]="s.textColor" [style.background-color]="s.bgColor" [style.padding.px]="s.padding"
     [style.margin-top.px]="s.margin" [style.margin-bottom.px]="s.margin" [style.font-size.px]="s.fontSize"
     [style.font-weight]="s.fontWeight" (click)="selectSession(s.id); $event.stopPropagation()">
+
+    <div class="component-content-inner" [style.transform]="s.offsetX ? 'translateX(' + s.offsetX + 'px)' : ''" style="width: 100%; height: 100%; display: inherit; flex-direction: inherit; justify-content: inherit; align-items: inherit;">
 
     <!-- Heading -->
     <h1 *ngIf="s.type === 'heading'" [style.margin]="0">{{ s.content }}</h1>
@@ -1312,6 +1337,7 @@
       <p>{{ s.content }}</p>
     </div>
 
+    </div>
   </div>
 </ng-template>
 
@@ -1321,7 +1347,7 @@
   (cropped)="handleCroppedImage($event)" (canceled)="showCropper = false"></app-image-cropper-modal>
 
 <!-- Custom Confirm Modal -->
-<app-confirm-modal *ngIf="sessionToDelete" title="Delete Element"
+<app-confirm-modal *ngIf="sessionToDelete" [modalTitle]="'Delete Element'"
   message="Are you sure you want to remove this element? This action cannot be undone." (confirmed)="onConfirmDelete()"
   (canceled)="onCancelDelete()"></app-confirm-modal>
 
@@ -1339,7 +1365,7 @@
         </svg>
         <h3>{{ editingColumnId ? 'Edit Column Settings' : 'New Custom Header' }}</h3>
       </div>
-      <button class="btn-close" (click)="cancelAddEditColumn()">&times;</button>
+      <button class="btn-close" title="Close" (click)="cancelAddEditColumn()">&times;</button>
     </div>
 
     <div class="modal-body">

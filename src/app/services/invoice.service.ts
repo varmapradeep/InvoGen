@@ -14,6 +14,7 @@ export interface InvoiceSession {
   fontWeight?: number; // 300, 400, 700, etc.
   alignment?: 'left' | 'center' | 'right';
   vAlignment?: 'top' | 'center' | 'bottom';
+  offsetX?: number; // Custom horizontal offset (px)
   width?: any; // Percentage for columns, or 'full'/'half' for elements
   height?: number; // Custom height for layout-row
   bgColor?: string; // Background Color
@@ -60,6 +61,7 @@ export interface InvoiceRecord {
   id?: string;
   invoiceNo: string;
   dateCreated: string;
+  dueDate?: string;
   customerName: string;
   invoiceName?: string;
   totalAmount: number;
@@ -69,8 +71,11 @@ export interface InvoiceRecord {
   fullData?: {
     sessions: InvoiceSession[];
     theme: InvoiceTheme;
+    invoiceDueDate?: string;
   };
 }
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 @Injectable({
   providedIn: 'root'
@@ -78,7 +83,51 @@ export interface InvoiceRecord {
 export class InvoiceService {
   private firestore: Firestore = inject(Firestore);
 
+  private templatesCache: { [userId: string]: { data: InvoiceTemplate[]; ts: number } } = {};
+  private invoicesCache: { [userId: string]: { data: InvoiceRecord[]; ts: number } } = {};
+
   constructor() {}
+
+  private isCacheFresh(ts: number): boolean {
+    return Date.now() - ts < CACHE_TTL_MS;
+  }
+
+  private getCached<T>(storageKey: string, memory: { data: T; ts: number } | undefined): { data: T; ts: number } | null {
+    if (memory && this.isCacheFresh(memory.ts)) return memory;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { data: T; ts: number };
+        if (parsed && parsed.data && this.isCacheFresh(parsed.ts)) return parsed;
+      }
+    } catch (e) { /* ignore corrupt cache */ }
+    return null;
+  }
+
+  private setCache(storageKey: string, memory: { data: any; ts: number }, data: any): void {
+    memory.data = data;
+    memory.ts = Date.now();
+    try { sessionStorage.setItem(storageKey, JSON.stringify({ data, ts: memory.ts })); } catch (e) { /* quota exceeded */ }
+  }
+
+  private invalidateCache(userId?: string): void {
+    if (userId) {
+      delete this.templatesCache[userId];
+      delete this.invoicesCache[userId];
+      try {
+        sessionStorage.removeItem(`invogen_templates_${userId}`);
+        sessionStorage.removeItem(`invogen_invoices_${userId}`);
+      } catch (e) { /* ignore */ }
+    } else {
+      this.templatesCache = {};
+      this.invoicesCache = {};
+      try {
+        Object.keys(sessionStorage)
+          .filter(k => k.startsWith('invogen_templates_') || k.startsWith('invogen_invoices_'))
+          .forEach(k => sessionStorage.removeItem(k));
+      } catch (e) { /* ignore */ }
+    }
+  }
 
   public async getLatestDraft(userId: string): Promise<InvoiceRecord | null> {
     const invoicesRef = collection(this.firestore, 'invoices');
@@ -97,16 +146,23 @@ export class InvoiceService {
   }
 
   public async getInvoices(userId: string): Promise<InvoiceRecord[]> {
+    const key = `invogen_invoices_${userId}`;
+    const cached = this.getCached<InvoiceRecord[]>(key, this.invoicesCache[userId]);
+    if (cached) return cached.data;
+
     const invoicesRef = collection(this.firestore, 'invoices');
     const q = query(invoicesRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     
-    return querySnapshot.docs.map((doc: any) => {
+    const invoices = querySnapshot.docs.map((doc: any) => {
       const data = doc.data();
       const id = doc.id;
       delete data.id; // Correctly handle if 'id' was accidentally saved as a field
       return { ...data, id } as InvoiceRecord;
     });
+
+    this.setCache(key, (this.invoicesCache[userId] = this.invoicesCache[userId] || { data: [], ts: 0 }), invoices);
+    return invoices;
   }
 
   public async getInvoiceById(id: string): Promise<InvoiceRecord | null> {
@@ -123,6 +179,7 @@ export class InvoiceService {
     const data = { ...invoice, userId };
     delete data.id; // Never save actual ID as a field in doc data
     await addDoc(invoicesRef, data);
+    this.invalidateCache(userId);
   }
 
   public async updateInvoice(id: string, invoice: Partial<InvoiceRecord>): Promise<void> {
@@ -130,11 +187,13 @@ export class InvoiceService {
     const data = { ...invoice };
     delete data.id; // Never update ID field
     await updateDoc(docRef, data);
+    this.invalidateCache(invoice.userId);
   }
 
   public async deleteInvoice(id: string): Promise<void> {
     const docRef = doc(this.firestore, 'invoices', id);
     await deleteDoc(docRef);
+    this.invalidateCache();
   }
 
   public async isInvoiceNumberUnique(userId: string, invoiceNo: string): Promise<boolean> {
@@ -146,27 +205,36 @@ export class InvoiceService {
 
   // --- Templates Methods ---
   public async getTemplates(userId: string): Promise<InvoiceTemplate[]> {
-    try {
-      const templatesRef = collection(this.firestore, 'templates');
-      const querySnapshot = await getDocs(templatesRef);
-      
-      const firestoreTemplates = querySnapshot.docs.map((doc: any) => {
-        const data = doc.data();
-        const id = doc.id;
-        return { ...data, id } as InvoiceTemplate;
-      });
+    const key = `invogen_templates_${userId}`;
+    const cached = this.getCached<InvoiceTemplate[]>(key, this.templatesCache[userId]);
+    if (cached) return cached.data;
 
-      // Filter: Owned by user OR is Public OR is a Predefined master template
-      const allowedTemplates = firestoreTemplates.filter(t => 
-        t.userId === userId || 
-        t.visibility === 'public' || 
-        t.isPredefined
-      );
-      
-      return [...MASTER_DESIGNS, ...allowedTemplates];
+    let templates: InvoiceTemplate[];
+    try {
+      templates = await this.fetchTemplates(userId);
     } catch (e) {
-      return MASTER_DESIGNS;
+      templates = MASTER_DESIGNS;
     }
+    this.setCache(key, (this.templatesCache[userId] = this.templatesCache[userId] || { data: [], ts: 0 }), templates);
+    return templates;
+  }
+
+  private async fetchTemplates(userId: string): Promise<InvoiceTemplate[]> {
+    const templatesRef = collection(this.firestore, 'templates');
+    const querySnapshot = await getDocs(templatesRef);
+
+    const firestoreTemplates = querySnapshot.docs.map((doc: any) => {
+      const data = doc.data();
+      const id = doc.id;
+      return { ...data, id } as InvoiceTemplate;
+    });
+
+    // Filter: Owned by user OR is Public OR is a Predefined master template
+    return [...MASTER_DESIGNS, ...firestoreTemplates.filter(t =>
+      t.userId === userId ||
+      t.visibility === 'public' ||
+      t.isPredefined
+    )];
   }
 
   public async saveTemplate(template: InvoiceTemplate): Promise<void> {
@@ -174,6 +242,7 @@ export class InvoiceService {
     const data = { ...template };
     delete data.id;
     await addDoc(templatesRef, data);
+    this.invalidateCache(template.userId);
   }
 
   public async updateTemplate(id: string, template: Partial<InvoiceTemplate>): Promise<void> {
@@ -181,10 +250,12 @@ export class InvoiceService {
     const data = { ...template };
     delete data.id;
     await updateDoc(docRef, data);
+    this.invalidateCache(template.userId);
   }
 
   public async deleteTemplate(id: string): Promise<void> {
     const docRef = doc(this.firestore, 'templates', id);
     await deleteDoc(docRef);
+    this.invalidateCache();
   }
 }

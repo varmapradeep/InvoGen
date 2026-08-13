@@ -19,7 +19,7 @@ import { ToastService, Toast } from '../../services/toast.service';
           <span *ngIf="toast.type === 'info'">ℹ</span>
         </span>
         <span class="toast-message">{{ toast.message }}</span>
-        <button class="toast-close" (click)="toastService.dismiss(toast.id)">×</button>
+        <button class="toast-close" title="Dismiss notification" (click)="toastService.dismiss(toast.id)">×</button>
       </div>
     </div>
   `,
